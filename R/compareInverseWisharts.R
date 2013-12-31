@@ -18,18 +18,45 @@ simulate.sumInvWisharts = function(invWishartList, replicates=1000) {
     # convert the weird array from rWishart to a list of matrices
     wishartReplicates = list()
     for(i in 1:replicates) {
-      wishartReplicates[i] = as.matrix(replicateArray[,,i])
+      wishartReplicates[[i]] = as.matrix(replicateArray[,,i])
     }
     return(wishartReplicates)
   }, replicates)
   
   # invert the Wisharts
   invWishartReplicates = lapply(wishartReplicates, function(obj) {
-    return lapply(obj, invert)
+    return (lapply(obj, solve))
   })
   
   # sum them and return the result
+  sumReplicates = lapply(1:replicates, function(i) {
+    return (Reduce('+',lapply(invWishartReplicates, '[[', i)))
+  })  
   
+  return(sumReplicates)
+}
+
+#
+# Get a sample of inverse wisharts
+#
+rInverseWishart = function(invWishart, n=1000) {
+  if (class(invWishart) != "inverseWishart") {
+    stop("input is not an inverse Wishart object"); 
+  }
+  if (n <= 0) {
+    stop("Invalid number of replicates")
+  }
+  
+  # get the corresponding Wishart
+  wishart = invert(invWishart)
+  # generate replicates from said Wishart
+  wishartArray = rWishart(n, wishart@df, wishart@covariance)
+  # make a list rather than the array thing that comes back from the 
+  # rWishart function
+  wishartReplicates = lapply(1:n, function(i) { return(as.matrix(wishartArray[,,i])) })
+
+  # invert those crazy wishart matrices and return
+  return(lapply(wishartReplicates, solve))  
 }
 
 ##### Functions for visually comparing densities #####
@@ -40,13 +67,15 @@ simulate.sumInvWisharts = function(invWishartList, replicates=1000) {
 #
 plotWishartElement = function(empirical, approximate, row, column, 
                               col=c("black", "black"),
-                              lty=c(3,1)) {
+                              lty=c(1,1), ylim=c(0,1), xlim=c(0,1)) {
   empElt = sapply(1:length(empirical),function(i) {return (empirical[[i]][row,column])})
   approxElt = sapply(1:length(approximate),function(i) {return (approximate[[i]][row,column])})
-  plot(density(empirical), main="", ylim=c(0,20),
+  plot(density(empElt), main="", 
+       ylim=ylim,
+       xlim=xlim,
        xlab="",ylab="",xaxt='n',yaxt='n',
        col=col[1], lty=lty[1])
-  lines(density(wSum11), col=col[2], lty=lty[2])
+  lines(density(approxElt), col=col[2], lty=lty[2])
   
 }
 
@@ -56,29 +85,39 @@ plotWishartElement = function(empirical, approximate, row, column,
 # Then plot the result
 #
 compare.plot = function(invWishartList, approximatingInvWishart, replicates=1000,
-                        filename=NULL) {
+                        filename=NULL, ylim=c(0,1), xlim=c(0,1),
+                        col=c("black", "black")) {
+  # get replicates of the sum of the specified inverse Wisharts
+  sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
+  
+  # get replicates of the approximating inv Wishart
+  approxReplicates = rInverseWishart(approximatingInvWishart, n=replicates)
+  
+  # plot the replicates
+  dim = nrow(approximatingInvWishart@precision)
+  # write to a file if specified
+  if (!is.null(filename)) {
+    png(file=filename,
+        width=1000, height=1000, pointsize=18)
+  }
+  #
+  # Plot the density of each cell 
+  #
+  par(mfrow=c(dim,dim),mar=c(0,0,0,0), oma=c(4,1,1,1))
+  for(r in 1:dim) {
+    for(c in 1:dim) {
+      plotWishartElement(
+        empirical=sumReplicates, approximate=approxReplicates, 
+        row=r, column=c, ylim=ylim, xlim=xlim, col=col)
+    }
+  }
+  # close output device if writing to a file
+  if (!is.null(filename)) {
+    dev.off()
+  }
   
 }
-png(file="invWishartPrelimTest.png",
-    width=1000, height=1000, pointsize=18)
-par(mfrow=c(3,3),mar=c(0,0,0,0), oma=c(4,1,1,1))
-plotWishartElement(1,1)
-plotWishartElement(1,2)
-plotWishartElement(1,3)
-plotWishartElement(2,1)
-plotWishartElement(2,2)
-par(xpd=NA)
-legend(0,-22,c("Empirical", "Approximate"),lty=c(1,1),
-       lwd=c(3,4),horiz=TRUE,cex=2,
-       col=c("purple","green"))
-par(xpd=FALSE)
-plotWishartElement(2,3)
-plotWishartElement(3,1)
-plotWishartElement(3,2)
-plotWishartElement(3,3)
 
-
-dev.off()
 
 
 

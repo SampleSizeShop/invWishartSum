@@ -17,6 +17,21 @@
 #
 #
 
+#
+# Equation to optimize for matching the expectation and log determinant
+#
+operand.logDeterminant = function(N, dim, weightedPrecisionSum, expectationSum) {
+  return(
+    log(det((N - dim - 1)*weightedPrecisionSum)) - dim*log(2) 
+    - sum(sapply(1:dim, function(i) {return(digamma((N-dim-i)/2))}))
+    - expectationSum
+    
+    )
+}
+
+# N = seq(10,10000,by=100)
+# plot(N,sapply(N,function(obj) { return(operand.logDeterminant(obj,3,weightedPrecisionSum,expectationSum))}),
+#      "l")
 
 #
 # Calculate the degrees of freedom and scale matrix of the
@@ -29,15 +44,84 @@
 #
 #
 approximateInverseWishart.logDeterminant = function(invWishartList) {
+  # get the dimension of the inverse Wisharts
+  dim = nrow(invWishartList[[1]]@precision)
   
+  # weighted sum of precision matrices
+  # sum of precision matrices weighted by the degrees of freedom
+  weightedPrecisionSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
+    return((1/(obj@df - dim - 1))*obj@precision)
+  }, dim=dim))
+  
+  # calculate the log determinant / digamm sum term
+  expectationSum = sum(sapply(invWishartList, function(obj, dim) {
+    log(det(obj@precision)) - dim*log(2) 
+    - sum(sapply(1:dim, function(i) {return(digamma((obj@df-dim-i)/2))} ))    
+  }, dim=dim))
+    
+  # start at the average of the df's for each wishart
+  dfMean = mean(sapply(invWishartList, function(obj) { return(obj@df)}))
+  # optimize the system of equations to obtain an expression for the
+  # approximate degrees of freedom
+  result = nlm(operand.logDeterminant, dfMean, dim=dim, 
+               weightedPrecisionSum=weightedPrecisionSum, 
+               expectationSum=expectationSum) 
+  dfStar = result$estimate
+  
+  # use dfStar to calculate the precision matrix
+  precisionStar = (dfStar - dim - 1) * precisionSum
+  
+  return(new("inverseWishart", df=dfStar, precision=precisionStar))
 }
 
 #
+# Function to be optimized for the trace
 #
+operand.trace = function(N, dim, weightedPrecisionSum, weightedTraceSum) {
+  return(N - dim - 1 - (N - dim - 1) * sum(diag((weightedPrecisionSum))) / 
+           weightedTraceSum)
+}
+
 #
+# Convenience routine to calculate the trace
+#
+trace = function(m) {
+  return (sum(diag(m)))
+}
+
+#
+# Approximates the distribution of the sum of the inverse Wisharts
+# by matching:
+# - The expectation of the sum
+# - The expectation of the trace of the sum
 #
 approximateInverseWishart.trace = function(invWishartList) {
+  # get the dimension of the inverse Wisharts
+  dim = nrow(invWishartList[[1]]@precision)
   
+  # sum of precision matrices weighted by the degrees of freedom
+  weightedPrecisionSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
+    return((1/(obj@df - dim - 1))*obj@precision)
+  }, dim=dim))
+  # sum of the traces of the precision matrices weighted by the degrees of freedom
+  weightedTraceSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
+    return(trace(obj@precision)/(obj@df - dim - 1))
+  }, dim=dim))
+
+  # start at the average of the df's for each wishart
+  dfMean = mean(sapply(invWishartList, function(obj) { return(obj@df)}))
+  # optimize the system of equations to obtain an expression for the
+  # approximate degrees of freedom
+  result = nlm(operand.trace, dfMean, dim=dim, 
+               weightedPrecisionSum=weightedPrecisionSum, 
+               weightedTraceSum=weightedTraceSum) 
+  dfStar = result$estimate
+
+  
+  # use dfStar to calculate the precision matrix
+  precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
+  
+  return(new("inverseWishart", df=dfStar, precision=precisionStar))
 }
 
 #

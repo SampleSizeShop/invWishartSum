@@ -77,9 +77,44 @@ approximateInverseWishart.logDeterminant = function(invWishartList) {
 #
 # Function to be optimized for the trace
 #
-operand.trace = function(N, dim, weightedPrecisionSum, weightedTraceSum) {
-  return(N - dim - 1 - (N - dim - 1) * sum(diag((weightedPrecisionSum))) / 
-           weightedTraceSum)
+operand.trace = function(N, dim, g1, g2, g3, g4) {
+  return(
+    ((2/(N - dim - 3))*g1
+    + (4/((N - dim)*(N - dim - 3))*(g2+(N - dim - 1)*g3))
+      - g4
+    )^2)
+}
+
+#
+# Calculates the variance of the trace of an inverse Wishart
+#
+traceVariance = function(invWishart) {
+  # get the dimension of the inverse Wishart
+  dim = nrow(invWishart@precision)
+  # array of numbers 1 to dim
+  indices = 1:dim
+  
+  # get the sum of the variances
+  varianceSum = sum(sapply(indices, function(i, dim) {
+    return (2 * invWishart@precision[i,i] / 
+              ((invWishart@df - dim - 1)^2*(invWishart@df - dim - 3)))
+  }, dim=dim))
+  
+  # generate a list of unique pairs of elements
+  pairs = combn(indices, 2, simplify=FALSE)
+  # get the sum of the covariances
+  covarianceSum = 4 * sum(sapply(pairs, function(pair, dim) { 
+    i = pair[1]
+    j = pair[2]
+    return(
+      (invWishart@precision[i,i]*invWishart@precision[j,j] + 
+         (invWishart@df - dim - 1)*invWishart@precision[i,j]^2) 
+      / ((invWishart@df - dim)*(invWishart@df - dim - 1)^2*(invWishart@df - dim - 3))) 
+  }, dim=dim))
+  
+  # return the variance of the trace
+  return(varianceSum + 4 * covarianceSum)
+  
 }
 
 #
@@ -103,18 +138,48 @@ approximateInverseWishart.trace = function(invWishartList) {
   weightedPrecisionSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
     return((1/(obj@df - dim - 1))*obj@precision)
   }, dim=dim))
-  # sum of the traces of the precision matrices weighted by the degrees of freedom
-  weightedTraceSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
-    return(trace(obj@precision)/(obj@df - dim - 1))
+  
+  # sum of weighted averages squared of each diagonal element of the precision matrices
+  weightedDiagElementSqSum = sum(sapply(1:dim, function(i, dim) {
+    return(sum(sapply(invWishartList, function(obj, dim, i) {
+      return((1/(obj@df - dim - 1))*obj@precision[i,i])
+    }, dim=dim, i=i))^2)
   }, dim=dim))
-
+  
+  # generate a list of unique pairs of indices
+  pairs = combn(1:dim, 2, simplify=FALSE)
+  
+  # sum of the weighted products of all pairs of diagonal elements of the
+  # precision matrices
+  weightedDiagElementProdSum = sum(sapply(pairs, function(pair, dim) {
+    return(sum(sapply(invWishartList, function(obj, dim, i) {
+      return((1/(obj@df - dim - 1))*obj@precision[i,i])
+    }, dim=dim, i=pair[1]))
+           *sum(sapply(invWishartList, function(obj, dim, i) {
+             return((1/(obj@df - dim - 1))*obj@precision[i,i])
+           }, dim=dim, i=pair[2])))
+  }, dim=dim))
+  
+  # sum of weighted averages squared of each off-diagonal element
+  weightedOffDiagElementSqSum = sum(sapply(pairs, function(pair, dim) {
+    return(sum(sapply(invWishartList, function(obj, dim, i, j) {
+      return((1/(obj@df - dim - 1))*obj@precision[i,j])
+    }, dim=dim, i=pair[1], j=pair[2]))^2)
+  }, dim=dim))
+  
+  # sum of the variances of the traces of the inverse Wisharts
+  traceVarianceSum = sum(sapply(invWishartList, traceVariance)) 
+    
   # start at the average of the df's for each wishart
   dfMean = mean(sapply(invWishartList, function(obj) { return(obj@df)}))
   # optimize the system of equations to obtain an expression for the
   # approximate degrees of freedom
   result = nlm(operand.trace, dfMean, dim=dim, 
-               weightedPrecisionSum=weightedPrecisionSum, 
-               weightedTraceSum=weightedTraceSum) 
+               g1=weightedDiagElementSqSum,
+               g2=weightedDiagElementProdSum,
+               g3=weightedOffDiagElementSqSum,
+               g4=traceVarianceSum)
+            
   dfStar = result$estimate
 
   

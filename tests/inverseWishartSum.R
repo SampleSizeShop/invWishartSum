@@ -28,7 +28,7 @@ checkApproximation = function(invWishartList, ylim, xlim, method="trace",
   }
 
   compare.plot(invWishartList, approxInvWishart, replicates=10000, 
-               ylim=ylim, xlim=xlim, col=col, filename="plot1.png")
+               ylim=ylim, xlim=xlim, col=col)
   
 }
 
@@ -56,5 +56,5 @@ case2.invWishartList = c(
              covariance=matrix(c(1, 0.2, 0.2, 0.2, 1, 0.2, 0.2, 0.2, 1), 
                                nrow=3, byrow=TRUE)))
   )
-checkApproximation(case2.invWishartList, xlim=c(-0.5,0.5), ylim=c(0,40))
+checkApproximation(case2.invWishartList, xlim=c(-0.5,0.5), ylim=c(0,40), method="trace")
 

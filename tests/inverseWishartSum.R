@@ -44,12 +44,12 @@ case3.scaleMatrixList = list(
            0,0,1,0,0,0), nrow=3, byrow=TRUE),
   cbind(matrix(rep(0,9), nrow=3, byrow=TRUE), diag(3))
   )
-sigma = matrix(c(5,2,1,2,2,2,1,2,8), nrow=3) 
+sigma = matrix(c(4,0.3,0.3,0.3,1,0.3,0.3,0.3,1), nrow=3) 
 case3.invWishartList = c(
   invert(new("wishart", df=10, covariance=diag(3)[c(1,3),] %*% sigma %*% t(diag(3)[c(1,3),]))),
   invert(new("wishart", df=10, covariance=sigma)),
-  invert(new("wishart", df=25, covariance=sigma))
+  invert(new("wishart", df=20, covariance=sigma))
 )
 
 checkApproximation(case3.invWishartList, scaleMatrixList=case3.scaleMatrixList, 
-                   xlim=c(-0.25,0.25), ylim=c(0,50), method="trace")
+                   xlim=c(-0.25,0.75), ylim=c(0,50), method="trace")

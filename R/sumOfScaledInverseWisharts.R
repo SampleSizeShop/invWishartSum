@@ -132,58 +132,58 @@ trace = function(m) {
 # - The expectation of the trace of the sum
 #
 approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList) {
-  print ("HELLO WORLD")
+
   # scaled precision matrices
   scaledPrecisionMatrices = lapply(1:length(scaleMatrixList), function(i) {
     scaleMatrix = scaleMatrixList[[i]]
     invWishart = invWishartList[[i]]
     return (t(scaleMatrix) %*% invWishart@precision %*% scaleMatrix)
   })
+  # get the dimension of the approximating inverse Wishart
+  dim = nrow(scaledPrecisionMatrices[[1]])
   
-  # get the dimension of the inverse Wisharts
-  dim = ncol(scaleMatrixList[[1]])
   # sum of precision matrices weighted by the degrees of freedom
-  weightedPrecisionSum = Reduce("+",lapply(1:length(scaleMatrixList), function(i, dim) {
+  weightedPrecisionSum = Reduce("+",lapply(1:length(scaleMatrixList), function(i) {
     precision = scaledPrecisionMatrices[[i]]
     invWishart = invWishartList[[i]]
-    return((1/(invWishart@df - dim - 1)) * precision)
-  }, dim=dim))    
+    return((1/(invWishart@df - nrow(invWishart@precision) - 1)) * precision)
+  }))    
   
   # sum of weighted averages squared of each diagonal element of the precision matrices
-  weightedDiagElementSqSum = sum(sapply(1:dim, function(cellIdx, dim) {
-    return(sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx) {
+  weightedDiagElementSqSum = sum(sapply(1:dim, function(cellIdx) {
+    return(sum(sapply(1:length(scaleMatrixList), function(i, cellIdx) {
       precision = scaledPrecisionMatrices[[i]]
       invWishart = invWishartList[[i]]
-      return((1/(invWishart@df - dim - 1))*precision[cellIdx,cellIdx])
-    }, dim=dim, cellIdx=cellIdx))^2)
-  }, dim=dim))
+      return((1/(invWishart@df - nrow(invWishart@precision) - 1))*precision[cellIdx,cellIdx])
+    }, cellIdx=cellIdx))^2)
+  }))
   
   # generate a list of unique pairs of indices
   pairs = combn(1:dim, 2, simplify=FALSE)
   
   # sum of the weighted products of all pairs of diagonal elements of the
   # precision matrices
-  weightedDiagElementProdSum = sum(sapply(pairs, function(pair, dim) {
-    return(sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx) {
+  weightedDiagElementProdSum = sum(sapply(pairs, function(pair) {
+    return(sum(sapply(1:length(scaleMatrixList), function(i, cellIdx) {
       precision = scaledPrecisionMatrices[[i]]
       invWishart = invWishartList[[i]]
-      return((1/(invWishart@df - dim - 1))*precision[cellIdx,cellIdx])
-    }, dim=dim, cellIdx=pair[1]))
-           * sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx) {
+      return((1/(invWishart@df - nrow(invWishart@precision) - 1))*precision[cellIdx,cellIdx])
+    }, cellIdx=pair[1]))
+           * sum(sapply(1:length(scaleMatrixList), function(i, cellIdx) {
              precision = scaledPrecisionMatrices[[i]]
              invWishart = invWishartList[[i]]
-             return((1/(invWishart@df - dim - 1))*precision[cellIdx,cellIdx])
-           }, dim=dim, cellIdx=pair[2])))
-  }, dim=dim))
+             return((1/(invWishart@df - nrow(invWishart@precision) - 1))*precision[cellIdx,cellIdx])
+           }, cellIdx=pair[2])))
+  }))
   
   # sum of weighted averages squared of each off-diagonal element
-  weightedOffDiagElementSqSum = sum(sapply(pairs, function(pair, dim) {
-    return(sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx1, cellIdx2) {
+  weightedOffDiagElementSqSum = sum(sapply(pairs, function(pair) {
+    return(sum(sapply(1:length(scaleMatrixList), function(i, cellIdx1, cellIdx2) {
       precision = scaledPrecisionMatrices[[i]]
       invWishart = invWishartList[[i]]
-      return((1/(invWishart@df - dim - 1))*precision[cellIdx1,cellIdx2])
-    }, dim=dim, cellIdx1=pair[1], cellIdx2=pair[2]))^2)
-  }, dim=dim))
+      return((1/(invWishart@df - nrow(invWishart@precision) - 1))*precision[cellIdx1,cellIdx2])
+    }, cellIdx1=pair[1], cellIdx2=pair[2]))^2)
+  }))
   
   # sum of the variances of the traces of the inverse Wisharts
   traceVarianceSum = sum(sapply(invWishartList, traceVariance)) 

@@ -22,11 +22,11 @@
 #
 operand.logDeterminant = function(N, dim, weightedPrecisionSum, expectationSum) {
   return(
-    log(det((N - dim - 1)*weightedPrecisionSum)) - dim*log(2) 
+    (log(det((N - dim - 1)*weightedPrecisionSum)) - dim*log(2) 
     - sum(sapply(1:dim, function(i) {return(digamma((N-dim-i)/2))}))
     - expectationSum
     
-    )
+    )^2)
 }
 
 # N = seq(10,10000,by=100)
@@ -49,9 +49,10 @@ approximateInverseWishart.logDeterminant = function(invWishartList) {
   
   # weighted sum of precision matrices
   # sum of precision matrices weighted by the degrees of freedom
-  weightedPrecisionSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
-    return((1/(obj@df - dim - 1))*obj@precision)
-  }, dim=dim))
+  weightedPrecisionSum = solve(Reduce("+",lapply(invWishartList, function(obj, dim) {
+    return(((obj@df - dim - 1))*solve(obj@precision))
+  }, dim=dim)))
+  
   
   # calculate the log determinant / digamm sum term
   expectationSum = sum(sapply(invWishartList, function(obj, dim) {
@@ -69,7 +70,7 @@ approximateInverseWishart.logDeterminant = function(invWishartList) {
   dfStar = result$estimate
   
   # use dfStar to calculate the precision matrix
-  precisionStar = (dfStar - dim - 1) * precisionSum
+  precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
   
   return(new("inverseWishart", df=dfStar, precision=precisionStar))
 }
@@ -125,15 +126,83 @@ trace = function(m) {
 }
 
 #
+# Approximates the distribution of the sum of scaled inverse Wisharts
+# by matching:
+# - The expectation of the sum
+# - The expectation of the trace of the sum
+#
+approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList) {
+  
+  # get the dimension of the inverse Wisharts
+  dim = ncol(scaleMatrixList[[1]])
+  # sum of precision matrices weighted by the degrees of freedom
+  weightedPrecisionSum = Reduce("+",lapply(1:length(scaleMatrixList), function(i, dim) {
+    scaleMatrix = scaleMatrixList[[i]]
+    invWishart = invWishartList[[i]]
+    return((1/(invWishart@df - dim - 1)) 
+           * (t(scaleMatrix) %*% invWishart@precision %*% scaleMatrix))
+  }, dim=dim))    
+  
+  # sum of weighted averages squared of each diagonal element of the precision matrices
+  weightedDiagElementSqSum = sum(sapply(1:dim, function(i, dim) {
+    return(sum(sapply(invWishartList, function(obj, dim, i) {
+      return((1/(obj@df - dim - 1))*obj@precision[i,i])
+    }, dim=dim, i=i))^2)
+  }, dim=dim))
+  
+  # generate a list of unique pairs of indices
+  pairs = combn(1:dim, 2, simplify=FALSE)
+  
+  # sum of the weighted products of all pairs of diagonal elements of the
+  # precision matrices
+  weightedDiagElementProdSum = sum(sapply(pairs, function(pair, dim) {
+    return(sum(sapply(invWishartList, function(obj, dim, i) {
+      return((1/(obj@df - dim - 1))*obj@precision[i,i])
+    }, dim=dim, i=pair[1]))
+           *sum(sapply(invWishartList, function(obj, dim, i) {
+             return((1/(obj@df - dim - 1))*obj@precision[i,i])
+           }, dim=dim, i=pair[2])))
+  }, dim=dim))
+  
+  # sum of weighted averages squared of each off-diagonal element
+  weightedOffDiagElementSqSum = sum(sapply(pairs, function(pair, dim) {
+    return(sum(sapply(invWishartList, function(obj, dim, i, j) {
+      return((1/(obj@df - dim - 1))*obj@precision[i,j])
+    }, dim=dim, i=pair[1], j=pair[2]))^2)
+  }, dim=dim))
+  
+  # sum of the variances of the traces of the inverse Wisharts
+  traceVarianceSum = sum(sapply(invWishartList, traceVariance)) 
+  
+  # start at the average of the df's for each wishart
+  dfMean = mean(sapply(invWishartList, function(obj) { return(obj@df)}))
+  # optimize the system of equations to obtain an expression for the
+  # approximate degrees of freedom
+  result = nlm(operand.trace, dfMean, dim=dim, 
+               g1=weightedDiagElementSqSum,
+               g2=weightedDiagElementProdSum,
+               g3=weightedOffDiagElementSqSum,
+               g4=traceVarianceSum)
+  
+  dfStar = result$estimate
+  
+  
+  # use dfStar to calculate the precision matrix
+  precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
+  
+  return(new("inverseWishart", df=dfStar, precision=precisionStar))
+}
+
+#
 # Approximates the distribution of the sum of the inverse Wisharts
 # by matching:
 # - The expectation of the sum
 # - The expectation of the trace of the sum
 #
 approximateInverseWishart.trace = function(invWishartList) {
+  
   # get the dimension of the inverse Wisharts
   dim = nrow(invWishartList[[1]]@precision)
-  
   # sum of precision matrices weighted by the degrees of freedom
   weightedPrecisionSum = Reduce("+",lapply(invWishartList, function(obj, dim) {
     return((1/(obj@df - dim - 1))*obj@precision)
@@ -241,50 +310,73 @@ approximateInverseWishart.cell = function(invWishartList, row=1, column=1) {
 # When the method="cellVariance" is used, the user must specify the cell
 # which will be matched
 #
-approximateInverseWishart = function(invWishartList, scaleMatrixList=NULL, method="trace", cell=NULL) {
-  # TODO: check class of invWishartList
-  
-  # scale the inverse Wisharts if needed
-  scaledInvWishartList = invWishartList
-  if (!is.null(scaleMatrixList)) {
-    if (length(scaleMatrixList) != length(invWishartList)) {
-      stop("The scale matrix list and wishart list do not have the same length")
-    }  
-    scaledInvWishartList = lapply(i:length(invWishartList), function(i) {
-      return (t(scaleMatrixList[i]) %*% invWishartList[i]@covariance %*% scaleMatrixList[i])
-    })
+approximateInverseWishart = function(invWishartList, method="trace", 
+                                     scaleMatrixList=NULL, cell=NULL) {
+  # check class of invWishartList
+  if (class(invWishartList) != "inverseWishart") {
+    stop("input list does not contain inverse Wisharts")
   }
   
-  # make sure all of the scaled Wisharts are the same size
-  dimension = nrow(scaledInvWishartList[[1]]@precision)
-  if (sum(sapply(scaledInvWishartList, function(obj, dimension) { 
-    return(ifelse(nrow(obj@precision) != dimension, 1, 0))}, dimension)) > 0) {
-    stop("All inverse wishart matrices must have equal dimension")
+  # make sure the wisharts and scale matrices are valid
+  if (!is.null(scaleMatrixList)) {
+    if (length(scaleMatrixList) != length(invWishartList)) {
+      stop("The number of inverse Wisharts must match the number of scale matrices")
+    }
+    # make sure all of the scale matrices conform with their inverse Wishart,
+    # as well as each otherare the same size
+    dimension = ncol(scaleMatrixList[[1]])
+    if (sum(sapply(1:length(scaleMatrixList), function(i, dimension) { 
+      invWishart = invWishartList[[i]]
+      scaleMatrix = scaleMatrixList[[i]]
+      return(ifelse(ncol(scaleMatrix) != dimension
+                    || nrow(scaleMatrix) != nrow(invWishart@precision), 
+                    1, 0))}, dimension)) > 0) {
+      stop("Scale matrices do not conform")
+    }
+  } else {
+    # we aren't scaling, so make sure the inverse Wisharts have the same dimension
+    dimension = nrow(invWishartList[[1]]@precision)
+    if (sum(sapply(invWishartList, function(obj, dimension) { 
+      return(ifelse(nrow(obj@precision) != dimension, 1, 0))}, dimension)) > 0) {
+      stop("All inverse Wisharts must have the same dimension")
+    }
   }
 
   #
   # Call appropriate approximation function
   #
-  switch(method,
-         trace = {
-           return(approximateInverseWishart.trace(scaledInvWishartList))
-         },
-         logDeterminant = {
-           return(approximateInverseWishart.logDeterminant(scaledInvWishartList))
-         },
-         cellVariance = {
-           if (is.null(cell) || length(cell) != 2) {
-             stop("Invalid cell specified")
-           }
-           row = cell[1]
-           column = cell[2]
-           dim = nrow(scaledInvWishartList[[1]]@precision)
-           if (row <= 0 || row > dim || column <= 0 || column > dim) {
-             stop("Specified cell for variance match is out of bounds")
-           }
-           return(approximateInverseWishart.cell(scaledInvWishartList, row, column))
-         },
-         stop("Unknown approximation method (valid values are 'trace', 'logDeterminant', or 'cellVariance'")
-  )       
+  if (method == "trace") {
+    if (!is.null(scaleMatrixList)) {
+      return(approximateInverseWishartScaled.trace(invWishartList, scaleMatrixList))
+    } else {
+      return(approximateInverseWishart.trace(invWishartList))
+    }    
+    
+  } else if (method == "logDeterminant") {
+    if (!is.null(scaleMatrixList)) {
+      stop("scale matrices are only supported for the 'trace' method")
+    }
+    return(approximateInverseWishart.logDeterminant(invWishartList))
+    
+  } else if (method == "cellVariance") {
+    if (!is.null(scaleMatrixList)) {
+      stop("scale matrices are only supported for the 'trace' method")
+    }
+    if (is.null(cell) || length(cell) != 2) {
+      stop("Invalid cell specified")
+    }
+    row = cell[1]
+    column = cell[2]
+    dim = nrow(invWishartList[[1]]@precision)
+    if (row <= 0 || row > dim || column <= 0 || column > dim) {
+      stop("Specified cell for variance match is out of bounds")
+    }
+    return(approximateInverseWishart.cell(invWishartList, row, column))
+  } else {
+    stop("Unknown approximation method (valid values are 'trace', 'logDeterminant', or 'cellVariance'")
+  }
+      
 }
+
+
 

@@ -132,22 +132,30 @@ trace = function(m) {
 # - The expectation of the trace of the sum
 #
 approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList) {
+  print ("HELLO WORLD")
+  # scaled precision matrices
+  scaledPrecisionMatrices = lapply(1:length(scaleMatrixList), function(i) {
+    scaleMatrix = scaleMatrixList[[i]]
+    invWishart = invWishartList[[i]]
+    return (t(scaleMatrix) %*% invWishart@precision %*% scaleMatrix)
+  })
   
   # get the dimension of the inverse Wisharts
   dim = ncol(scaleMatrixList[[1]])
   # sum of precision matrices weighted by the degrees of freedom
   weightedPrecisionSum = Reduce("+",lapply(1:length(scaleMatrixList), function(i, dim) {
-    scaleMatrix = scaleMatrixList[[i]]
+    precision = scaledPrecisionMatrices[[i]]
     invWishart = invWishartList[[i]]
-    return((1/(invWishart@df - dim - 1)) 
-           * (t(scaleMatrix) %*% invWishart@precision %*% scaleMatrix))
+    return((1/(invWishart@df - dim - 1)) * precision)
   }, dim=dim))    
   
   # sum of weighted averages squared of each diagonal element of the precision matrices
-  weightedDiagElementSqSum = sum(sapply(1:dim, function(i, dim) {
-    return(sum(sapply(invWishartList, function(obj, dim, i) {
-      return((1/(obj@df - dim - 1))*obj@precision[i,i])
-    }, dim=dim, i=i))^2)
+  weightedDiagElementSqSum = sum(sapply(1:dim, function(cellIdx, dim) {
+    return(sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx) {
+      precision = scaledPrecisionMatrices[[i]]
+      invWishart = invWishartList[[i]]
+      return((1/(invWishart@df - dim - 1))*precision[cellIdx,cellIdx])
+    }, dim=dim, cellIdx=cellIdx))^2)
   }, dim=dim))
   
   # generate a list of unique pairs of indices
@@ -156,19 +164,25 @@ approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList
   # sum of the weighted products of all pairs of diagonal elements of the
   # precision matrices
   weightedDiagElementProdSum = sum(sapply(pairs, function(pair, dim) {
-    return(sum(sapply(invWishartList, function(obj, dim, i) {
-      return((1/(obj@df - dim - 1))*obj@precision[i,i])
-    }, dim=dim, i=pair[1]))
-           *sum(sapply(invWishartList, function(obj, dim, i) {
-             return((1/(obj@df - dim - 1))*obj@precision[i,i])
-           }, dim=dim, i=pair[2])))
+    return(sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx) {
+      precision = scaledPrecisionMatrices[[i]]
+      invWishart = invWishartList[[i]]
+      return((1/(invWishart@df - dim - 1))*precision[cellIdx,cellIdx])
+    }, dim=dim, cellIdx=pair[1]))
+           * sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx) {
+             precision = scaledPrecisionMatrices[[i]]
+             invWishart = invWishartList[[i]]
+             return((1/(invWishart@df - dim - 1))*precision[cellIdx,cellIdx])
+           }, dim=dim, cellIdx=pair[2])))
   }, dim=dim))
   
   # sum of weighted averages squared of each off-diagonal element
   weightedOffDiagElementSqSum = sum(sapply(pairs, function(pair, dim) {
-    return(sum(sapply(invWishartList, function(obj, dim, i, j) {
-      return((1/(obj@df - dim - 1))*obj@precision[i,j])
-    }, dim=dim, i=pair[1], j=pair[2]))^2)
+    return(sum(sapply(1:length(scaleMatrixList), function(i, dim, cellIdx1, cellIdx2) {
+      precision = scaledPrecisionMatrices[[i]]
+      invWishart = invWishartList[[i]]
+      return((1/(invWishart@df - dim - 1))*precision[cellIdx1,cellIdx2])
+    }, dim=dim, cellIdx1=pair[1], cellIdx2=pair[2]))^2)
   }, dim=dim))
   
   # sum of the variances of the traces of the inverse Wisharts

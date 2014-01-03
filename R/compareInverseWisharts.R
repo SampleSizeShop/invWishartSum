@@ -5,6 +5,42 @@
 #
 
 #
+# Simulate the sum of inverse Wishart matrices with zero-padding scale matrices
+# 
+simulate.sumInvWishartsScaled = function(invWishartList, scaleMatrixList, replicates=1000) {
+  
+  # get the Wisharts corresponding to the inverse Wisharts
+  wishartList = lapply(invWishartList, invert)
+  
+  # simulate the Wishart replicates
+  wishartReplicates = lapply(wishartList, function(obj, replicates) {
+    replicateArray = rWishart(replicates, obj@df, obj@covariance)
+    # convert the weird array from rWishart to a list of matrices
+    wishartReplicates = list()
+    for(i in 1:replicates) {
+      wishartReplicates[[i]] = as.matrix(replicateArray[,,i])
+    }
+    return(wishartReplicates)
+  }, replicates=replicates)
+  
+  # invert the Wisharts and scale them
+  invWishartReplicates = lapply(1:length(invWishartList), function(i) {
+    scaleMatrix = scaleMatrixList[[i]]
+    replicateList = wishartReplicates[[i]]
+    return (lapply(replicateList, function(replicate) { 
+      t(scaleMatrix) %*% solve(replicate) %*% scaleMatrix
+      }))
+  })
+  
+  # sum them and return the result
+  sumReplicates = lapply(1:replicates, function(i) {
+    return (Reduce('+',lapply(invWishartReplicates, '[[', i)))
+  })  
+  
+  return(sumReplicates)
+}
+
+#
 # Simulate the sum of inverse Wishart matrices
 # 
 simulate.sumInvWisharts = function(invWishartList, replicates=1000) {
@@ -84,17 +120,12 @@ plotWishartElement = function(empirical, approximate, row, column,
 # sum of inverse Wishart matrices and the approximating inverse Wishart.
 # Then plot the result
 #
-compare.plot = function(invWishartList, approximatingInvWishart, replicates=1000,
-                        filename=NULL, ylim=c(0,1), xlim=c(0,1),
-                        col=c("black", "black")) {
-  # get replicates of the sum of the specified inverse Wisharts
-  sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
-  
-  # get replicates of the approximating inv Wishart
-  approxReplicates = rInverseWishart(approximatingInvWishart, n=replicates)
+compare.plot = function(sumReplicates, approxReplicates, filename=NULL, 
+                        ylim=c(0,1), xlim=c(0,1), col=c("black", "black")) {
   
   # plot the replicates
-  dim = nrow(approximatingInvWishart@precision)
+  dim = nrow(sumReplicates[[1]])
+  
   # write to a file if specified
   if (!is.null(filename)) {
     png(file=filename,
@@ -118,7 +149,36 @@ compare.plot = function(invWishartList, approximatingInvWishart, replicates=1000
   
 }
 
-
+#
+# Plot the approximation and calculate the KL-divergence
+#
+checkApproximation = function(invWishartList, scaleMatrixList=NULL,
+                              replicates=10000,
+                              ylim, xlim, method="trace",
+                              cell=c(1,1), col=c("red", "black")) {
+  print(method)
+  
+  # get the approximating inverse Wishart
+  approxInvWishart = approximateInverseWishart(invWishartList, scaleMatrixList,
+                                               method=method)
+  
+  # simulate replicates of the sum
+  if (!is.null(scaleMatrixList)) {
+    # get replicates of the sum of the specified inverse Wisharts
+    sumReplicates = simulate.sumInvWishartsScaled(invWishartList, scaleMatrixList,
+                                                  replicates=replicates)
+  } else {
+    # get replicates of the sum of the specified inverse Wisharts
+    sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
+  } 
+  
+  # get replicates of the approximating inv Wishart
+  approxReplicates = rInverseWishart(approxInvWishart, n=replicates)
+  
+  # plot the results
+  compare.plot(sumReplicates, approxReplicates, ylim=ylim, xlim=xlim, col=col)
+  
+}
 
 
 ##### Calculate the Kullback-Leibler divergence #####

@@ -13,9 +13,9 @@ case1.invWishartList = c(
   invert(new("wishart", df=6, covariance=matrix(c(5,2,1,2,2,2,1,2,8), nrow=3)))
   )
 
-checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="cellVariance")
+#checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="cellVariance")
 checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="trace")
-checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="logDeterminant")
+#checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="logDeterminant")
 
 #
 # Wishart Test Case 2
@@ -34,6 +34,105 @@ checkApproximation(case2.invWishartList, xlim=case2.xlim, ylim=case2.ylim, metho
 checkApproximation(case2.invWishartList, xlim=case2.xlim, ylim=case2.ylim, method="trace")
 checkApproximation(case2.invWishartList, xlim=case2.xlim, ylim=case2.ylim, method="logDeterminant")
 
+
+sumReps = simulate.sumInvWisharts(case2.invWishartList, replicates=10000)
+approxIW = approximateInverseWishart(case2.invWishartList)
+approxReps = rInverseWishart(approxIW, n=10000)
+
+compareCovariance = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,3),
+                             style="contour", lims=c(-2,2,-2,2), col=c("red", "black")) {
+  empirical.kde <- kde2d(
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=50)
+  
+  approx.kde <- kde2d(
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=50)
+  
+  if (style == "image") {
+    image(empirical.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
+    image(approx.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
+  } else if (style == "persp") {
+    persp(empirical.kde, phi = 45, theta = 30, border=col[1], zlim=c(0,5))
+    persp(approx.kde, phi = 45, theta = 30, border=col[2], zlim=c(0,5))
+  } else {
+    contour(empirical.kde, col=col[1])
+    contour(approx.kde, col=col[2])
+  }
+
+  
+  #image(empirical.kde)
+ # persp(bivn.kde, phi = 45, theta = 30)
+  
+}
+
+covarianceDiff = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,3),
+                          style="contour", lims=c(-2,2,-2,2), col=c("red", "black")) {
+  
+  empirical.kde <- kde2d(
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=100)
+  
+  approx.kde <- kde2d(
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=100)
+  
+  diff.kde = empirical.kde
+  diff.kde[[3]] = abs(empirical.kde[[3]] - approx.kde[[3]]) 
+  
+  #diff.kde <- kde2d(repDiffCell1, repDiffCell2, 
+  #  lims=lims, n=100)
+  
+  if (style == "image") {
+    image(diff.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
+  } else if (style == "persp") {
+    persp(empirical.kde, phi = 45, theta = 30, border=col[1], zlim=c(0,20))
+    persp(approx.kde, phi = 45, theta = 30, border=col[2], zlim=c(0,20))
+    persp(diff.kde, phi = 45, theta = 30, border="green", zlim=c(0,20))
+  } else {
+    contour(diff.kde, col=col[1])
+  }
+  
+  
+  #image(empirical.kde)
+  # persp(bivn.kde, phi = 45, theta = 30)
+  
+}
+
+cells = (c(1,1))
+combos = combn(1:9, 2)
+
+par(mfrow=c(1,3))
+compareCovariance(sumReps, approxReps, cell1=c(1,2), cell2=c(1,3), style="persp")
+compareCovariance(sumReps, approxReps, cell1=c(2,2), cell2=c(2,1), style="image",
+                  lims=c(-2,3,-2,2))
+compareCovariance(sumReps, approxReps, cell1=c(3,3), cell2=c(2,2), style="image",
+                  lims=c(-1,2,0,3))
+compareCovariance(sumReps, approxReps, cell1=c(1,3), cell2=c(3,1), style="image",
+                  lims=c(-2,3,-2,2))
+
+covarianceDiff(sumReps, approxReps, cell1=c(1,3), cell2=c(3,1), style="persp",
+               lims=c(-2,3,-2,2))
 #
 # Scaled, zero-padded Wisharts
 #
@@ -44,7 +143,7 @@ case3.scaleMatrixList = list(
            0,0,1,0,0,0), nrow=3, byrow=TRUE),
   cbind(matrix(rep(0,9), nrow=3, byrow=TRUE), diag(3))
   )
-sigma = matrix(c(4,0.3,0.3,0.3,1,0.3,0.3,0.3,1), nrow=3) 
+sigma = matrix(c(1,0.3,0.4,0.3,1,0.3,0.4,0.3,1), nrow=3, byrow=3) 
 case3.invWishartList = c(
   invert(new("wishart", df=10, covariance=diag(3)[c(1,3),] %*% sigma %*% t(diag(3)[c(1,3),]))),
   invert(new("wishart", df=10, covariance=sigma)),
@@ -52,4 +151,4 @@ case3.invWishartList = c(
 )
 
 checkApproximation(case3.invWishartList, scaleMatrixList=case3.scaleMatrixList, 
-                   xlim=c(-0.25,0.75), ylim=c(0,50), method="trace")
+                   xlim=c(-0.25,0.75), ylim=c(0,30), method="trace")

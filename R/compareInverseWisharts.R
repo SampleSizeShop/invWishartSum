@@ -182,3 +182,5 @@ checkApproximation = function(invWishartList, scaleMatrixList=NULL,
 
 
 ##### Calculate the Kullback-Leibler divergence #####
+
+

@@ -4,18 +4,55 @@
 #
 set.seed(2014)
 
+# degrees of freedom scale factors
+scaleList = 1:5
+
+#
+# Test Case 1: inverse ChiSquare
+#
+case1.invChiSqList = c(
+  invert(new("wishart", df=6, covariance=matrix(c(1)))),
+  invert(new("wishart", df=8, covariance=matrix(c(1)))),
+  invert(new("wishart", df=9, covariance=matrix(c(1))))
+)
+
+# build energy distance results
+energyTable = data.frame(
+  dfScale = scaleList,
+  chiSquareEnergy = sapply(scaleList, function(scale) {
+    # scale the degrees of freedom
+    invWishartList = sapply(case1.invChiSqList, function(invWishart, scale) {
+      return (new("inverseWishart", df=(invWishart@df * scale), 
+                  precision=invWishart@precision))
+    }, scale)
+    # get the approximating inverse Wishart
+    approxInvWishart = approximateInverseWishart(invWishartList, scaleMatrixList,
+                                                 method=method)
+    # get replicates of the sum of the specified inverse Wisharts
+    sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
+    # get replicates of the approximating inv Wishart
+    approxReplicates = rInverseWishart(approxInvWishart, n=replicates)
+    
+    return(calculateEnergyDistance(sumReplicates, approxReplicates))
+  })
+)
+
+calculateEnergyDistance(sumReplicates, approxReplicates)
+checkApproximation(case1.invChiSqList, ylim=c(0,10), xlim=c(-2,4), method="trace")
+
+
+# inverse Chi square
+
 # Wishart Test Case 1
 # Specify our list of inverse Wisharts to sum
 #
 case1.invWishartList = c(
-  invert(new("wishart", df=10, covariance=matrix(c(1,0.3,0.3,0.3,1,0.3,0.3,0.3,1), nrow=3))),
-  invert(new("wishart", df=8, covariance=matrix(c(1,0.3,0.3,0.4,3,0.3,0.3,0.3,7), nrow=3))),
-  invert(new("wishart", df=6, covariance=matrix(c(5,2,1,2,2,2,1,2,8), nrow=3)))
+  invert(new("wishart", df=100, covariance=matrix(c(1,0.3,0.3,0.3,1,0.3,0.3,0.3,1), nrow=3))),
+  invert(new("wishart", df=80, covariance=matrix(c(1,0.3,0.3,0.4,3,0.3,0.3,0.3,7), nrow=3))),
+  invert(new("wishart", df=60, covariance=matrix(c(5,2,1,2,2,2,1,2,8), nrow=3)))
   )
 
-#checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="cellVariance")
 checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="trace")
-#checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="logDeterminant")
 
 #
 # Wishart Test Case 2
@@ -30,9 +67,7 @@ case2.invWishartList = c(
   )
 case2.xlim=c(-4,4)
 case2.ylim=c(0,2)
-checkApproximation(case2.invWishartList, xlim=case2.xlim, ylim=case2.ylim, method="cellVariance")
 checkApproximation(case2.invWishartList, xlim=case2.xlim, ylim=case2.ylim, method="trace")
-checkApproximation(case2.invWishartList, xlim=case2.xlim, ylim=case2.ylim, method="logDeterminant")
 
 
 sumReps = simulate.sumInvWisharts(case2.invWishartList, replicates=10000)
@@ -119,20 +154,21 @@ covarianceDiff = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,3),
   
 }
 
-cells = (c(1,1))
-combos = combn(1:9, 2)
+# cells = (c(1,1))
+# combos = combn(1:9, 2)
+# 
+# par(mfrow=c(1,3))
+# compareCovariance(sumReps, approxReps, cell1=c(1,2), cell2=c(1,3), style="persp")
+# compareCovariance(sumReps, approxReps, cell1=c(2,2), cell2=c(2,1), style="image",
+#                   lims=c(-2,3,-2,2))
+# compareCovariance(sumReps, approxReps, cell1=c(3,3), cell2=c(2,2), style="image",
+#                   lims=c(-1,2,0,3))
+# compareCovariance(sumReps, approxReps, cell1=c(1,3), cell2=c(3,1), style="image",
+#                   lims=c(-2,3,-2,2))
+# 
+# covarianceDiff(sumReps, approxReps, cell1=c(1,3), cell2=c(3,1), style="persp",
+#                lims=c(-2,3,-2,2))
 
-par(mfrow=c(1,3))
-compareCovariance(sumReps, approxReps, cell1=c(1,2), cell2=c(1,3), style="persp")
-compareCovariance(sumReps, approxReps, cell1=c(2,2), cell2=c(2,1), style="image",
-                  lims=c(-2,3,-2,2))
-compareCovariance(sumReps, approxReps, cell1=c(3,3), cell2=c(2,2), style="image",
-                  lims=c(-1,2,0,3))
-compareCovariance(sumReps, approxReps, cell1=c(1,3), cell2=c(3,1), style="image",
-                  lims=c(-2,3,-2,2))
-
-covarianceDiff(sumReps, approxReps, cell1=c(1,3), cell2=c(3,1), style="persp",
-               lims=c(-2,3,-2,2))
 #
 # Scaled, zero-padded Wisharts
 #

@@ -180,7 +180,46 @@ checkApproximation = function(invWishartList, scaleMatrixList=NULL,
   
 }
 
+#
+# euclidean distance
+#
+euclideanMatrixDistance <- function(m1, m2) {
+  sqrt(sum(apply(m1 - m2, c(1,2), function(x) { return(x^2)})))   
+}
 
-##### Calculate the Kullback-Leibler divergence #####
+#
+# Estimate the energy distance between two inverse Wishart samples
+#
+# Assumes equal sample sizes
+#
+calculateEnergyDistance = function(sample1, sample2) {
+  dim = nrow(sample1[[1]])
+  n = length(sample1)
+  
+  # sum of distances between samples 1 and 2
+  s1s1Dist = 0
+  s2s2Dist = 0
+  s1s2Dist = 0
+  # calculate the sums
+  for(i in 1:n) {
+    for(j in 1:n) {
+      s1s2Dist <- s1s2Dist + euclideanMatrixDistance(sample1[[i]], sample2[[j]])
+      s1s1Dist <- s1s1Dist + euclideanMatrixDistance(sample1[[i]], sample1[[j]])
+      s2s2Dist <- s2s2Dist + euclideanMatrixDistance(sample2[[i]], sample2[[j]])
+    }
+  }
+  
+  # calculate the energy distance
+  eDist = (
+    (n*n/(n+n)) *
+      (2/(n*n) * (s1s2Dist) -
+         1/n^2 * (s1s1Dist) -
+         1/n^2 * (s2s2Dist)
+        )
+  )
+  
+  return(eDist)
+  
+}
 
 

@@ -4,11 +4,8 @@
 #
 set.seed(2014)
 
-# degrees of freedom scale factors
-scaleList = 1:5
-
 #
-# Test Case 1: inverse ChiSquare
+# Test Case 1: sum of inverse ChiSquare variables (i.e. 1x1 inverse Wishart)
 #
 case1.invChiSqList = c(
   invert(new("wishart", df=6, covariance=matrix(c(1)))),
@@ -16,41 +13,93 @@ case1.invChiSqList = c(
   invert(new("wishart", df=9, covariance=matrix(c(1))))
 )
 
-# build energy distance results
-energyTable = data.frame(
-  dfScale = scaleList,
-  chiSquareEnergy = sapply(scaleList, function(scale) {
+# 
+# Test case 2: sum of 3x3 inverse Wishart matrices 
+#
+case2.invWishartList = c(
+  invert(new("wishart", df=6, covariance=matrix(c(1,0.3,0.3,0.3,1,0.3,0.3,0.3,1), nrow=3))),
+  invert(new("wishart", df=8, covariance=matrix(c(1,0.3,0.3,0.3,3,0.3,0.3,0.3,7), nrow=3))),
+  invert(new("wishart", df=9, covariance=matrix(c(5,2,1,2,2,2,1,2,8), nrow=3)))
+)
+
+#
+# Test case 3: sum of scaled, zero-padded Wisharts sharing the same base covariance
+#
+case3.scaleMatrixList = list(
+  matrix(c(1,0,0,0,0,0,0,0,1,0,0,0), nrow=2, byrow=TRUE),
+  matrix(c(1,0,0,0,0,0,
+           0,1,0,0,0,0,
+           0,0,1,0,0,0), nrow=3, byrow=TRUE),
+  cbind(matrix(rep(0,9), nrow=3, byrow=TRUE), diag(3))
+)
+sigma = matrix(c(1,0.3,0.4,0.3,1,0.3,0.4,0.3,1), nrow=3, byrow=3) 
+case3.invWishartList = c(
+  invert(new("wishart", df=6, covariance=diag(3)[c(1,3),] %*% sigma %*% t(diag(3)[c(1,3),]))),
+  invert(new("wishart", df=8, covariance=sigma)),
+  invert(new("wishart", df=9, covariance=sigma))
+)
+
+# degrees of freedom scale factors
+scaleList = 2^(0:5)
+# test cases
+testCases.dist = list(case1.invChiSqList, case2.invWishartList, case3.invWishartList)
+testCases.scale = list(NULL, NULL, case3.scaleMatrixList)
+
+#
+# Calculate the energy distance for each level
+#
+replicates=100
+edist = data.frame(scale=scaleList)
+for(case in 1:length(testCases.dist)) {
+  print(paste(c("Processing case", case), collapse=""))
+  # get current case
+  case.dist = testCases.dist[[case]]
+  case.scale = testCases.scale[[case]]
+  # allocate an array to store the energy distances
+  case.edist = rep(0,length(scaleList))
+  
+  for(scaleIdx in 1:length(scaleList)) {
+    print(paste(c("Scale: ", scaleList[scaleIdx]), collapse=""))
     # scale the degrees of freedom
-    invWishartList = sapply(case1.invChiSqList, function(invWishart, scale) {
+    invWishartList = lapply(case.dist, function(invWishart, scale) {
       return (new("inverseWishart", df=(invWishart@df * scale), 
                   precision=invWishart@precision))
-    }, scale)
-    # get the approximating inverse Wishart
-    approxInvWishart = approximateInverseWishart(invWishartList, scaleMatrixList,
-                                                 method=method)
+    }, scale=scaleList[scaleIdx])
+    class(invWishartList) = "inverseWishart"
+    
+    # calculate the approximating inverse Wishart
+    approxInvWishart = approximateInverseWishart(invWishartList, case.scale,
+                                                 method="trace")
+    
     # get replicates of the sum of the specified inverse Wisharts
-    sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
+    if (!is.null(case.scale)) {
+      # get replicates of the sum of the specified inverse Wisharts
+      sumReplicates = simulate.sumInvWishartsScaled(invWishartList, case.scale,
+                                                    replicates=replicates)
+    } else {
+      # get replicates of the sum of the specified inverse Wisharts
+      sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
+    } 
+    
     # get replicates of the approximating inv Wishart
     approxReplicates = rInverseWishart(approxInvWishart, n=replicates)
     
-    return(calculateEnergyDistance(sumReplicates, approxReplicates))
-  })
-)
+    case.edist[scaleIdx] = calculateEnergyDistance(sumReplicates, approxReplicates)
+    
+  }
 
-calculateEnergyDistance(sumReplicates, approxReplicates)
-checkApproximation(case1.invChiSqList, ylim=c(0,10), xlim=c(-2,4), method="trace")
+  edist <- cbind(edist, case.edist)
+  names(edist)[case+1] = paste("case",case,"_edist",collapse="",sep="")
+  
+}
+
+
+
 
 
 # inverse Chi square
 
-# Wishart Test Case 1
-# Specify our list of inverse Wisharts to sum
-#
-case1.invWishartList = c(
-  invert(new("wishart", df=100, covariance=matrix(c(1,0.3,0.3,0.3,1,0.3,0.3,0.3,1), nrow=3))),
-  invert(new("wishart", df=80, covariance=matrix(c(1,0.3,0.3,0.4,3,0.3,0.3,0.3,7), nrow=3))),
-  invert(new("wishart", df=60, covariance=matrix(c(5,2,1,2,2,2,1,2,8), nrow=3)))
-  )
+
 
 checkApproximation(case1.invWishartList, ylim=c(0,4), xlim=c(-2,4), method="trace")
 

@@ -93,7 +93,7 @@ for(case in 1:length(testCases.dist)) {
   
 }
 
-
+# write the energy 
 
 
 

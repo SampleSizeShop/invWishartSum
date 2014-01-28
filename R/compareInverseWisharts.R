@@ -121,7 +121,8 @@ plotWishartElement = function(empirical, approximate, row, column,
 # Then plot the result
 #
 compare.plot = function(sumReplicates, approxReplicates, filename=NULL, 
-                        ylim=c(0,1), xlim=c(0,1), col=c("black", "black")) {
+                        ylim=c(0,1), xlim=c(0,1), col=c("black", "black"),
+                        legendX=-1, legendY=1, legendCex=1) {
   
   # plot the replicates
   dim = nrow(sumReplicates[[1]])
@@ -134,7 +135,7 @@ compare.plot = function(sumReplicates, approxReplicates, filename=NULL,
   #
   # Plot the density of each cell 
   #
-  par(mfrow=c(dim,dim),mar=c(0,0,0,0), oma=c(4,1,1,1))
+  par(mfrow=c(dim,dim),mar=c(0,0,0,0), oma=c(4,1,1,1), xpd=NA)
   for(r in 1:dim) {
     for(c in 1:dim) {
       plotWishartElement(
@@ -142,6 +143,9 @@ compare.plot = function(sumReplicates, approxReplicates, filename=NULL,
         row=r, column=c, ylim=ylim, xlim=xlim, col=col)
     }
   }
+  legend(legendX,legendY, # Find suitable coordinates by trial and error
+         c("Empirical", "Approximate"), lty=1, lwd=2, col=col, box.col=NA,
+         horiz=TRUE, cex=legendCex)
   # close output device if writing to a file
   if (!is.null(filename)) {
     dev.off()
@@ -150,38 +154,82 @@ compare.plot = function(sumReplicates, approxReplicates, filename=NULL,
 }
 
 #
-# Plot the approximation and calculate the KL-divergence
+# Produce a comparison plot of the covariance components
 #
-checkApproximation = function(invWishartList, scaleMatrixList=NULL,
-                              replicates=10000,
-                              ylim, xlim, method="trace",
-                              cell=c(1,1), col=c("red", "black")) {
-  print(method)
+compare.covarPlot = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,3),
+                             style="contour", lims=c(-2,2,-2,2), col=c("red", "black")) {
+  empirical.kde <- kde2d(
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=50)
   
-  # get the approximating inverse Wishart
-  approxInvWishart = approximateInverseWishart(invWishartList, scaleMatrixList,
-                                               method=method)
+  approx.kde <- kde2d(
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=50)
   
-  # simulate replicates of the sum
-  if (!is.null(scaleMatrixList)) {
-    # get replicates of the sum of the specified inverse Wisharts
-    sumReplicates = simulate.sumInvWishartsScaled(invWishartList, scaleMatrixList,
-                                                  replicates=replicates)
+  if (style == "image") {
+    image(empirical.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
+    image(approx.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
+  } else if (style == "persp") {
+    persp(empirical.kde, phi = 45, theta = 30, border=col[1], zlim=c(0,5))
+    persp(approx.kde, phi = 45, theta = 30, border=col[2], zlim=c(0,5))
   } else {
-    # get replicates of the sum of the specified inverse Wisharts
-    sumReplicates = simulate.sumInvWisharts(invWishartList, replicates=replicates)
-  } 
-  
-  # get replicates of the approximating inv Wishart
-  approxReplicates = rInverseWishart(approxInvWishart, n=replicates)
-  
-  # plot the results
-  compare.plot(sumReplicates, approxReplicates, ylim=ylim, xlim=xlim, col=col)
+    contour(empirical.kde, col=col[1])
+    contour(approx.kde, col=col[2])
+  }
   
 }
 
 #
-# euclidean distance
+# Plot the difference of the covariances
+#
+compare.covarDiff = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,3),
+                          style="contour", lims=c(-2,2,-2,2), col=c("red", "black")) {
+  
+  empirical.kde <- kde2d(
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(empiricalReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=100)
+  
+  approx.kde <- kde2d(
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell1),
+    sapply(approxReps, function(x, cell) { 
+      return(x[cell[1], cell[2]])
+    }, cell=cell2), 
+    lims=lims, n=100)
+  
+  diff.kde = empirical.kde
+  diff.kde[[3]] = abs(empirical.kde[[3]] - approx.kde[[3]]) 
+    
+  if (style == "image") {
+    image(diff.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
+  } else if (style == "persp") {
+    persp(empirical.kde, phi = 45, theta = 30, border=col[1], zlim=c(0,20))
+    persp(approx.kde, phi = 45, theta = 30, border=col[2], zlim=c(0,20))
+    persp(diff.kde, phi = 45, theta = 30, border="green", zlim=c(0,20))
+  } else {
+    contour(diff.kde, col=col[1])
+  }
+  
+}
+
+#
+# Calculate the euclidean distance between two matrices
 #
 euclideanMatrixDistance <- function(m1, m2) {
   sqrt(sum(apply(m1 - m2, c(1,2), function(x) { return(x^2)})))   

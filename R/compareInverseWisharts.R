@@ -3,7 +3,7 @@
 # sum of inverse Wishart matrices
 #
 #
-
+library(MASS)
 #
 # Simulate the sum of inverse Wishart matrices with zero-padding scale matrices
 # 
@@ -173,6 +173,7 @@ compare.covarPlot = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,
     }, cell=cell2), 
     lims=lims, n=50)
   
+  par(mfrow=c(1,2))
   if (style == "image") {
     image(empirical.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
     image(approx.kde, col = colorRampPalette(c("blue", "green", "yellow", "white"))(256))
@@ -180,8 +181,8 @@ compare.covarPlot = function(empiricalReps, approxReps, cell1=c(1,2), cell2=c(1,
     persp(empirical.kde, phi = 45, theta = 30, border=col[1], zlim=c(0,5))
     persp(approx.kde, phi = 45, theta = 30, border=col[2], zlim=c(0,5))
   } else {
-    contour(empirical.kde, col=col[1])
-    contour(approx.kde, col=col[2])
+    contour(empirical.kde, col=col[1], asp=1)
+    contour(approx.kde, col=col[2], asp=1)
   }
   
 }

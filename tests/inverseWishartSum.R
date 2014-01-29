@@ -139,6 +139,27 @@ plotDensityFromFile <- function(sumFile, approxFile, filename,
 }
 
 #
+# Plot the bivariate densities of the specified cells for the sum and the approximation
+#
+plotCovarianceFromFile <- function(sumFile, approxFile, cell1=c(1,1), cell2=c(1,2),
+                                   height=4, width=4,
+                                   filename, lims=c(-2,2,-2,2),
+                                   col=c("red", "black")) {
+  print(paste(c("Plotting bivariate densities for files [", sumFile, 
+                "] and [", approxFile, "]"), collapse=""))
+  
+  # load the sum sample from the Rdata file - sets a variable called sumReplicates
+  load(sumFile)
+  # load the approx sample from the Rdata file - sets a variable called approxReplicates
+  load(approxFile)
+  # plot the densities
+  pdf(paste(c("../../text/Figures/", filename), collapse=""), height=height, width=width)
+  compare.covarPlot(sumReplicates, approxReplicates, lims=lims, col=col, style="contour")
+  
+  dev.off()
+}
+
+#
 # Evaluate the accuracy of the approximation
 # for the input inverse Wishart list
 #
@@ -315,6 +336,13 @@ plotDensityFromFile(case3.sumFiles[idx], case3.approxFiles[idx],
 
 
 ##### Plot selected covariances for the p > 1 cases #####
+idx = which(dfScaleList==4)
+plotCovarianceFromFile(case2.sumFiles[idx], case2.approxFiles[idx], cell1=c(1,1),
+                       cell2=c(1,2), height=4, width=6,
+                       lims=c(-0.04,0,-0.025,0.01), filename="invWishartCovar.pdf")
+plotCovarianceFromFile(case3.sumFiles[idx], case3.approxFiles[idx], cell1=c(1,1),
+                       cell2=c(1,2), height=4, width=6,
+                       lims=c(-0.03,0.03,-0.06,0), filename="singularInvWishartCovar.pdf")
 
 ##### Evaluate the accuracy of each test case #####
 

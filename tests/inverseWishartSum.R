@@ -324,12 +324,12 @@ legend("topright", c("Chi-Square", "Inverse Wishart", "Singular inverse Wishart"
 dev.off()
 
 # if not rerunning the simulation, load the data from disk
-case1.sumFiles = list.files("../data", pattern="case1SumReplicates*")
-case1.approxFiles = list.files("../data", pattern="case1ApproxReplicates*")
-case2.sumFiles = list.files("../data", pattern="case2SumReplicates*")
-case2.approxFiles = list.files("../data", pattern="case2ApproxReplicates*")
-case3.sumFiles = list.files("../data", pattern="case3SumReplicates*")
-case3.approxFiles = list.files("../data", pattern="case3ApproxReplicates*")
+case1.sumFiles = list.files("../data", pattern="case1SumReplicates*", full.names=TRUE)
+case1.approxFiles = list.files("../data", pattern="case1ApproxReplicates*", full.names=TRUE)
+case2.sumFiles = list.files("../data", pattern="case2SumReplicates*", full.names=TRUE)
+case2.approxFiles = list.files("../data", pattern="case2ApproxReplicates*", full.names=TRUE)
+case3.sumFiles = list.files("../data", pattern="case3SumReplicates*", full.names=TRUE)
+case3.approxFiles = list.files("../data", pattern="case3ApproxReplicates*", full.names=TRUE)
 
 
 ##### Plot the univariate densities for the sum 
@@ -346,6 +346,7 @@ plotDensityFromFile(case3.sumFiles[idx], case3.approxFiles[idx],
 
 ##### Plot selected covariances for the p > 1 cases #####
 idx = which(dfScaleList==4)
+idx=5
 plotCovarianceFromFile(case2.sumFiles[idx], case2.approxFiles[idx], cell1=c(1,1),
                        cell2=c(1,2), height=4, width=6,
                        lims=c(-0.04,0,-0.025,0.01), filename="invWishartCovar.pdf")

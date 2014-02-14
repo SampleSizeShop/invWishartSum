@@ -323,6 +323,15 @@ legend("topright", c("Chi-Square", "Inverse Wishart", "Singular inverse Wishart"
        lty = c(1,2,3), cex=1.5)
 dev.off()
 
+# if not rerunning the simulation, load the data from disk
+case1.sumFiles = list.files("../data", pattern="case1SumReplicates*")
+case1.approxFiles = list.files("../data", pattern="case1ApproxReplicates*")
+case2.sumFiles = list.files("../data", pattern="case2SumReplicates*")
+case2.approxFiles = list.files("../data", pattern="case2ApproxReplicates*")
+case3.sumFiles = list.files("../data", pattern="case3SumReplicates*")
+case3.approxFiles = list.files("../data", pattern="case3ApproxReplicates*")
+
+
 ##### Plot the univariate densities for the sum 
 ##### and the approximating inverse Wishart 
 #####

@@ -314,12 +314,13 @@ edist = data.frame(dfScale=dfScaleList,
 write.csv(edist, "../data/energyDistance.csv", row.names=FALSE)
 
 # plot the energy distance by df scale factor
+edist = read.csv("../data/energyDistance.csv")
 pdf(file="../../text/Figures/energyDistanceByScaleFactor.pdf")
 plot(edist$dfScale, edist$chiSQEdist, "l", cex.lab=1.5, ylim=c(0,10),
-     xlab="Degrees of Freedom Scale Factor", ylab="Energy Distance")
+     xlab=expression(nu), ylab="Energy Distance")
 lines(edist$dfScale, edist$invWishartEdist, lty=2)
 lines(edist$dfScale, edist$singularInvWishartEdist, lty=3)
-legend("topright", c("Chi-Square", "Inverse Wishart", "Singular inverse Wishart"), 
+legend("topright", c("Inverse chi-squared sum", "Inverse Wishart sum", "Quadratic form sum"), 
        lty = c(1,2,3), cex=1.5)
 dev.off()
 

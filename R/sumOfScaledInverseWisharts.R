@@ -1,3 +1,28 @@
+#####################################################################
+#
+# Copyright (C) 2014 Sarah M. Kreidler
+#
+# This file is part of the R package invWishartSum, which provides
+# functions to calculate the approximate distribution of a sum
+# of inverse central Wishart matrices and certain quadratic forms
+# in inverse central Wishart matrices.
+# 
+# invWishartSum is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# invWishartSum is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with invWishartSum.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################
+
+
 #
 # Functions to calculate an approximation to the distribution of
 # the sum of inverse Wishart matrices.

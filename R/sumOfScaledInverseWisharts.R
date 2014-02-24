@@ -146,9 +146,9 @@ traceVariance = function(invWishart) {
 #
 # Convenience routine to calculate the trace
 #
-trace = function(m) {
-  return (sum(diag(m)))
-}
+# trace = function(m) {
+#   return (sum(diag(m)))
+# }
 
 #
 # Approximates the distribution of the sum of scaled inverse Wisharts

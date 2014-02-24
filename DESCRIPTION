@@ -1,0 +1,19 @@
+Package: invWishartSum
+Version: 0.1.0
+Date: 2014-02-24
+Title: An approximation to the distribution of inverse Wishart sums
+Author: Sarah M. Kreidler
+Maintainer: Sarah M. Kreidler <sarah5280@gmail.com>
+Depends: R (>= 3.0.0), nlme
+Suggests: MASS
+Description: Functions to calculate an inverse central Wishart to 
+  approximate the distribution of a sum of inverse central Wishart 
+  matrices and sums of certain quadratic forms in inverse central 
+  Wishart matrices.  The package includes functions to evaluate 
+  the approximation graphically, and by using the energy distance 
+  described by Szekely and Rizzo. The package includes all supporting 
+  code to produce the results of the manuscript "An Approximation 
+  to the Distribution of the Sum of Inverse Wishart Matrices" 
+  by Kreidler et. al. (currently in review)
+License: GPL (>= 3)
+URL: https://github.com/kreidles/invWishartSum

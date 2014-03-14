@@ -341,13 +341,16 @@ write.csv(edist, "../data/energyDistance.csv", row.names=FALSE)
 
 # plot the energy distance by df scale factor
 edist = read.csv("../data/energyDistance.csv")
-pdf(file="../../text/Figures/energyDistanceByScaleFactor.pdf")
+pdf(file="../inst/figures/energyDistanceByScaleFactor.pdf", family="Times")
 plot(edist$dfScale, edist$chiSQEdist, "l", cex.lab=1.5, ylim=c(0,10),
-     xlab=expression(nu), ylab="Energy Distance")
+     xlab=expression(nu), ylab="Energy Distance", las=1)
+points(edist$dfScale, edist$chiSQEdist, pch=0)
 lines(edist$dfScale, edist$invWishartEdist, lty=2)
+points(edist$dfScale, edist$invWishartEdist, pch=1)
 lines(edist$dfScale, edist$singularInvWishartEdist, lty=3)
+points(edist$dfScale, edist$singularInvWishartEdist, pch=2)
 legend("topright", c("Inverse chi-squared sum", "Inverse Wishart sum", "Quadratic form sum"), 
-       lty = c(1,2,3), cex=1.5)
+       lty = c(1,2,3), cex=1.5, pch=c(0,1,2))
 dev.off()
 
 # if not rerunning the simulation, load the data from disk

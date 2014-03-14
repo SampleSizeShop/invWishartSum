@@ -127,7 +127,7 @@ rInverseWishart = function(invWishart, n=1000) {
 # sum and the approximating inverse Wishart density
 #
 plotWishartElement = function(empirical, approximate, row, column, 
-                              col=c("black", "black"),
+                              col=c("blue", "black"),
                               lty=c(1,1), ylim=c(0,1), xlim=c(0,1)) {
   empElt = sapply(1:length(empirical),function(i) {return (empirical[[i]][row,column])})  
   approxElt = sapply(1:length(approximate),function(i) {return (approximate[[i]][row,column])})
@@ -138,14 +138,14 @@ plotWishartElement = function(empirical, approximate, row, column,
          ylim=ylim,
          xlim=xlim,
          xlab="",ylab="",xaxt='n',yaxt='n',
-         col=col[2], lty=lty[2])
+         col=col[2], lty=lty[2], lwd=1)
   } else {
     plot(density(empElt), main="", 
          ylim=ylim,
          xlim=xlim,
          xlab="",ylab="",xaxt='n',yaxt='n',
-         col=col[1], lty=lty[1])
-    lines(density(approxElt), col=col[2], lty=lty[2])
+         col=col[1], lty=lty[1], lwd=1)
+    lines(density(approxElt), col=col[2], lty=lty[2],lwd=1)
   }
   
 }

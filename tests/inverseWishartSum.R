@@ -150,7 +150,7 @@ getEnergyDistanceForFilelist <- function(sumFileList, approxFileList) {
 # Plot the univariate densities for the sum and the approximation
 #
 plotDensityFromFile <- function(sumFile, approxFile, filename,
-                                ylim=c(0,1), xlim=c(0,1), col=c("red", "black")) {
+                                ylim=c(0,1), xlim=c(0,1), col=c("blue", "black")) {
   print(paste(c("Plotting univariate densities for files [", sumFile, 
                 "] and [", approxFile, "]"), collapse=""))
   
@@ -159,7 +159,7 @@ plotDensityFromFile <- function(sumFile, approxFile, filename,
   # load the approx sample from the Rdata file - sets a variable called approxReplicates
   load(approxFile)
   # plot the densities
-  pdf(paste(c("../../text/Figures/", filename), collapse=""))
+  pdf(paste(c("../inst/figures/", filename), collapse=""))
   compare.plot(sumReplicates, approxReplicates, ylim=ylim, xlim=xlim, col=col)
   dev.off()
 }
@@ -170,7 +170,7 @@ plotDensityFromFile <- function(sumFile, approxFile, filename,
 plotCovarianceFromFile <- function(sumFile, approxFile, cell1=c(1,1), cell2=c(1,2),
                                    height=4, width=4,
                                    filename, lims=c(-2,2,-2,2),
-                                   col=c("red", "black")) {
+                                   col=c("blue", "black")) {
   print(paste(c("Plotting bivariate densities for files [", sumFile, 
                 "] and [", approxFile, "]"), collapse=""))
   
@@ -179,7 +179,7 @@ plotCovarianceFromFile <- function(sumFile, approxFile, cell1=c(1,1), cell2=c(1,
   # load the approx sample from the Rdata file - sets a variable called approxReplicates
   load(approxFile)
   # plot the densities
-  pdf(paste(c("../../text/Figures/", filename), collapse=""), height=height, width=width)
+  pdf(paste(c("../inst/figures/", filename), collapse=""), height=height, width=width)
   compare.covarPlot(sumReplicates, approxReplicates, lims=lims, col=col, style="contour")
   
   dev.off()
@@ -362,7 +362,8 @@ case3.approxFiles = list.files("../data", pattern="case3ApproxReplicates*", full
 ##### Plot the univariate densities for the sum 
 ##### and the approximating inverse Wishart 
 #####
-idx = which(dfScaleList==4)
+idx = which(dfScaleList==8)
+idx=5
 plotDensityFromFile(case1.sumFiles[idx], case1.approxFiles[idx], 
                     ylim=c(0,40), xlim=c(0,0.25), filename="invChiSqDensity.pdf")
 plotDensityFromFile(case2.sumFiles[idx], case2.approxFiles[idx], 

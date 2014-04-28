@@ -43,7 +43,7 @@ isSquare = function(x) {
 #
 # check if a matrix is positive definite
 #
-isPositiveDefinite = function(x, tol=1e-08) {
+isPositiveDefinite = function(x, tol=1e-18) {
   if (!is.matrix(x) || !isSquare(x)) {
     stop("argument must be a square matrix")
   }

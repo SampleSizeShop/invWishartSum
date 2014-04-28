@@ -215,20 +215,48 @@ approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList
   
   # start at the average of the df's for each wishart
   dfMean = mean(sapply(invWishartList, function(obj) { return(obj@df)}))
+  
+  #
+  # calculate intermediate values
+  #
+  b = -(2 * weightedDiagElementSqSum + 
+         4 * weightedOffDiagElementSqSum +
+         2 * traceVarianceSum * dim + 
+         3 * traceVarianceSum)
+  c = (2 * weightedDiagElementSqSum * dim -
+         4 * weightedDiagElementProdSum + 
+         4 * weightedOffDiagElementSqSum * dim + 
+         4 * weightedOffDiagElementSqSum + traceVarianceSum * dim^2 +
+         3 * traceVarianceSum * dim)
+  
+  tmp = (-1*b + c(-1,1)*sqrt(b^2 - 4 * traceVarianceSum * c)) /
+    (2 * traceVarianceSum)
+
+  # calculate approximate N
+  dfStar = max(tmp)
+
+#   
+#   # use dfStar to calculate the precision matrix
+#   precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
+  
+
+  
   # optimize the system of equations to obtain an expression for the
   # approximate degrees of freedom
-  result = nlm(operand.trace, dfMean, dim=dim, 
-               g1=weightedDiagElementSqSum,
-               g2=weightedDiagElementProdSum,
-               g3=weightedOffDiagElementSqSum,
-               g4=traceVarianceSum)
-  
-  dfStar = result$estimate
-  
+#   result = nlm(operand.trace, dfMean, dim=dim, 
+#                g1=weightedDiagElementSqSum,
+#                g2=weightedDiagElementProdSum,
+#                g3=weightedOffDiagElementSqSum,
+#                g4=traceVarianceSum)
+#   
+#   dfStar = result$estimate
   
   # use dfStar to calculate the precision matrix
   precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
-  
+# 
+#   cat("dfStar=", dfStar, "\n")
+#   cat("precision=", precisionStar, "\n")
+
   return(new("inverseWishart", df=dfStar, precision=precisionStar))
 }
 

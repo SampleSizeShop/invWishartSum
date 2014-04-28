@@ -42,9 +42,24 @@
 #
 #
 
-#
-# Equation to optimize for matching the expectation and log determinant
-#
+
+#' operand.logDeterminant
+#' 
+#' Equation used for optimization when matching the expectation and log determinant to 
+#' approximate the distribution of a sum of inverse Wishart matrices.  Optimization
+#' occurs across the degrees of freedom, N.
+#' 
+#' @param N the current degrees of freedom
+#' @param dim the dimension of the inverse Wishart matrices in the sum
+#' @param weightedPrecisionSum weighted sum of precision matrices
+#' @param expectationSum sum of the expected values of each inverse Wishart
+#' @return will return 0 or near 0 at optimal value of N
+#' @keywords internal
+#' @note
+#' Based on the approach of:
+#' Granstrom, K., & Orguner, U. (2012). On the reduction of Gaussian inverse Wishart mixtures. 
+#' In 2012 15th International Conference on Information Fusion (FUSION) (pp. 2162-2169).
+#'
 operand.logDeterminant = function(N, dim, weightedPrecisionSum, expectationSum) {
   return(
     (log(det((N - dim - 1)*weightedPrecisionSum)) - dim*log(2) 
@@ -58,16 +73,21 @@ operand.logDeterminant = function(N, dim, weightedPrecisionSum, expectationSum) 
 # plot(N,sapply(N,function(obj) { return(operand.logDeterminant(obj,3,weightedPrecisionSum,expectationSum))}),
 #      "l")
 
-#
-# Calculate the degrees of freedom and scale matrix of the
-# inverse Wishart which best approximates the distribution
-# of sum of the specified list of Wishart matrices
-#
-# This function implements the method described by Granstrom and Orguner (2012)
-# which matches the expectation and the expectation of the log determinant.
-# This approach requires numerical optimization
-#
-#
+#' approximateInverseWishart.logDeterminant
+#' 
+#' Approximate the distribution of a sum of inverse Wishart matrices with
+#' a single inverse Wishart.The two-moment approximation matches the expectation
+#' of the sum and the expectation of the log determinant of the sum.
+#' The solution to the resulting equations is obtained by numerical optimization.
+#' 
+#' @param invWishartList the list of inverse Wishart matrices in the sum
+#' @return the approximating inverse Wishart object
+#' @seealso \code{\link{inverseWishart}}
+#' @references
+#' Based on the approach of:
+#' Granstrom, K., & Orguner, U. (2012). On the reduction of Gaussian inverse Wishart mixtures. 
+#' In 2012 15th International Conference on Information Fusion (FUSION) (pp. 2162-2169).
+#'
 approximateInverseWishart.logDeterminant = function(invWishartList) {
   # get the dimension of the inverse Wisharts
   dim = nrow(invWishartList[[1]]@precision)
@@ -100,9 +120,21 @@ approximateInverseWishart.logDeterminant = function(invWishartList) {
   return(new("inverseWishart", df=dfStar, precision=precisionStar))
 }
 
-#
-# Function to be optimized for the trace
-#
+#' operand.trace
+#' 
+#' Equation used for optimization when matching the expectation and variance of the trace to 
+#' approximate the distribution of a sum of inverse Wishart matrices.  Optimization
+#' occurs across the degrees of freedom, N. 
+#' 
+#' @param N the current degrees of freedom
+#' @param dim the dimension of the inverse Wishart matrices in the sum
+#' @param weightedPrecisionSum weighted sum of precision matrices
+#' @param expectationSum sum of the expected values of each inverse Wishart
+#' @return will return 0 or near 0 at optimal value of N
+#' @keywords internal
+#' @note
+#' THIS FUNCTION IS OBSOLETE SINCE THIS APPROACH HAS A CLOSED-FORM SOLUTION
+#'
 operand.trace = function(N, dim, g1, g2, g3, g4) {
   return(
     ((2/(N - dim - 3))*g1
@@ -111,9 +143,15 @@ operand.trace = function(N, dim, g1, g2, g3, g4) {
     )^2)
 }
 
-#
-# Calculates the variance of the trace of an inverse Wishart
-#
+
+#' traceVariance
+#' 
+#' Calculate the variance of the trace of an inverse Wishart matrix
+#' 
+#' @param invWishart the inverse Wishart object
+#' @seealso \code{\link{inverseWishart}}
+#' @return the variance of the trace of the specified inverse Wishart
+#'
 traceVariance = function(invWishart) {
   # get the dimension of the inverse Wishart
   dim = nrow(invWishart@precision)
@@ -143,19 +181,22 @@ traceVariance = function(invWishart) {
   
 }
 
-#
-# Convenience routine to calculate the trace
-#
-# trace = function(m) {
-#   return (sum(diag(m)))
-# }
-
-#
-# Approximates the distribution of the sum of scaled inverse Wisharts
-# by matching:
-# - The expectation of the sum
-# - The expectation of the trace of the sum
-#
+#' approximateInverseWishartScaled.trace
+#' 
+#' Approximate the distribution of a sum of quadratic forms in inverse Wishart 
+#' matrices with a single inverse Wishart. The two-moment approximation matches 
+#' the expectation of the sum and the variance of the trace of the sum.
+#' 
+#' @param invWishartList the list of inverse Wishart matrices in the sum
+#' @param scaleMatrixList the list of matrices which will be pre- and post-multiplied
+#' onto each corresponding inverse Wishart to build the quadratic forms
+#' @return the approximating inverse Wishart object
+#' @seealso \code{\link{inverseWishart}}
+#' 
+#' @references
+#' Kreidler, S. M., Muller, K. E., & Glueck, D. H. An Approximation to 
+#' the Distribution of the Sum of Inverse Wishart Matrices, In review.
+#'
 approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList) {
 
   # scaled precision matrices
@@ -234,38 +275,30 @@ approximateInverseWishartScaled.trace = function(invWishartList, scaleMatrixList
 
   # calculate approximate N
   dfStar = max(tmp)
-
-#   
-#   # use dfStar to calculate the precision matrix
-#   precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
-  
-
-  
-  # optimize the system of equations to obtain an expression for the
-  # approximate degrees of freedom
-#   result = nlm(operand.trace, dfMean, dim=dim, 
-#                g1=weightedDiagElementSqSum,
-#                g2=weightedDiagElementProdSum,
-#                g3=weightedOffDiagElementSqSum,
-#                g4=traceVarianceSum)
-#   
-#   dfStar = result$estimate
   
   # use dfStar to calculate the precision matrix
   precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
-# 
-#   cat("dfStar=", dfStar, "\n")
-#   cat("precision=", precisionStar, "\n")
 
   return(new("inverseWishart", df=dfStar, precision=precisionStar))
 }
 
-#
-# Approximates the distribution of the sum of the inverse Wisharts
-# by matching:
-# - The expectation of the sum
-# - The expectation of the trace of the sum
-#
+
+#' approximateInverseWishart.trace
+#' 
+#' Approximate the distribution of a sum of inverse Wishart 
+#' matrices with a single inverse Wishart.
+#' 
+#' The two-moment approximation matches the expectation
+#' of the sum and the variance of the trace of the sum.
+#' 
+#' @param invWishartList the list of inverse Wishart matrices in the sum
+#' @return the approximating inverse Wishart object
+#' @seealso \code{\link{inverseWishart}}
+#' 
+#' @references
+#' Kreidler, S. M., Muller, K. E., & Glueck, D. H. An Approximation to 
+#' the Distribution of the Sum of Inverse Wishart Matrices, In review.
+#'
 approximateInverseWishart.trace = function(invWishartList) {
   
   # get the dimension of the inverse Wisharts
@@ -333,30 +366,28 @@ approximateInverseWishart.trace = function(invWishartList) {
   precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
   
   return(new("inverseWishart", df=dfStar, precision=precisionStar))
-  
-#   # optimize the system of equations to obtain an expression for the
-#   # approximate degrees of freedom
-#   result = nlm(operand.trace, dfMean, dim=dim, 
-#                g1=weightedDiagElementSqSum,
-#                g2=weightedDiagElementProdSum,
-#                g3=weightedOffDiagElementSqSum,
-#                g4=traceVarianceSum)
-#             
-#   dfStar = result$estimate
-# 
-#   
-#   # use dfStar to calculate the precision matrix
-#   precisionStar = (dfStar - dim - 1) * weightedPrecisionSum
-#   
-#   return(new("inverseWishart", df=dfStar, precision=precisionStar))
+
 }
 
-#
-# Approximates the distribution of the sum of the inverse Wisharts
-# by matching:
-# - The expectation of the sum
-# - The variance of the specified cell of the sum
-#
+#' approximateInverseWishart.cell
+#' 
+#' Approximate the distribution of a sum of inverse Wishart 
+#' matrices with a single inverse Wishart.
+#' 
+#' The two-moment approximation matches the expectation
+#' of the sum and the variance of the specified cell of the sum.
+#' 
+#' @param invWishartList the list of inverse Wishart matrices in the sum
+#' @param row the row of the cell used in the variance match
+#' @param column the column of the cell used in the variance match
+#' @return the approximating inverse Wishart object
+#' @seealso \code{\link{inverseWishart}}
+#' 
+#' @note
+#' This approach has lower accuracy that the \code{\link{approximateInverseWishart.trace}}
+#' function and is not recommended.
+#' 
+#'
 approximateInverseWishart.cell = function(invWishartList, row=1, column=1) {
 
   # sum of cell / (df - dim - 1)
@@ -387,22 +418,49 @@ approximateInverseWishart.cell = function(invWishartList, row=1, column=1) {
   return(new("inverseWishart", df=dfStar, precision=precisionStar))  
 }
 
-#
-# Calculate an inverse Wishart or pseudo inverse Wishart which
-# best approximates the distribution of the sum of the specified
-# inverse Wishart matrices.
-#
-# Optionally, scale matrices can be specified which will be pre and post
-# multiplied onto each Wishart.  For example, for the inputs:
-# wishartList = (X1, X2)
-# scaleMatrixList = (A,B)
-#
-# this function will calculate the approximate distribution of
-#  A'X1A + B'X2B
-#
-# When the method="cellVariance" is used, the user must specify the cell
-# which will be matched
-#
+#' approximateInverseWishart
+#' 
+#' Approximate the distribution of a sum of inverse Wishart 
+#' matrices or a sum of quadratic forms in inverse Wishart matrices
+#' with a single inverse Wishart.
+#'
+#' Three approximation methods are currently supported
+#' \enumerate{
+#' \item{\code{trace}: }{The default method which matches the expectation of the sum and the 
+#' variance of the trace of the sum}
+#' \item{\code{logDeterminant: }}{A method which matches the expectation of the sum and the 
+#' expectation of the log determinant of the sum}
+#' \item{\code{cell}: 
+#' }{A method which matches the expectation of the sum and the 
+#' variance of a specified cell of the sum}
+#' }
+#' 
+#' For quadratic forms, a list of scale matrices should be specified which will be pre- and post-
+#' multiplied onto each inverse Wishart.  For example, for the inputs 
+#' \code{invWishartList = c(X1, X2)} and \code{scaleMatrixList = c(A,B)}, 
+#' the function will calculate the approximate distribution of
+#'  \code{A'X1A + B'X2B}
+#'
+#' @param invWishartList the list of inverse Wishart matrices in the sum
+#' @param method the moment-matching approach to use.  Valid values are \code{trace},
+#' \code{log-determinant}, and \code{cell} 
+#' @param scaleMatrixList optional, list of scale matrices to form a sum of quadratic forms.  
+#' There must be one scale matrix for each inverse Wishart in the \code{invWishartList}.
+#' @param cell optional, a vector containing the row and column of the cell used for variance
+#' matching when using \code{method='cell'} 
+#' @return the approximating inverse Wishart object
+#' @seealso \code{\link{inverseWishart}}
+#' 
+#' @references
+#' The \code{trace} method implements the approach of:\cr
+#' Kreidler, S. M., Muller, K. E., & Glueck, D. H. An Approximation to 
+#' the Distribution of the Sum of Inverse Wishart Matrices, In review.
+#' 
+#' The \code{logDeterminant} method is based on the approach of:\cr
+#' Granstrom, K., & Orguner, U. (2012). On the reduction of Gaussian inverse Wishart mixtures. 
+#' In 2012 15th International Conference on Information Fusion (FUSION) (pp. 2162-2169).
+#'
+#'
 approximateInverseWishart = function(invWishartList, method="trace", 
                                      scaleMatrixList=NULL, cell=NULL) {
   # check class of invWishartList

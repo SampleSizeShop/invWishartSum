@@ -30,9 +30,13 @@
 #
 #
 
-#
-# check if a matrix is square
-#
+#' isSquare 
+#' 
+#' check if a matrix is square
+#' 
+#' @param x a \code{matrix} object
+#' @return TRUE if the matrix is square, and FALSE otherwise
+#' @keywords internal
 isSquare = function(x) {
   if (!is.matrix(x)) {
     stop("argument must be a matrix")
@@ -40,9 +44,14 @@ isSquare = function(x) {
   return(nrow(x) == ncol(x))
 }
 
-#
-# check if a matrix is positive definite
-#
+#' isPositiveDefinite
+#' 
+#' check if a matrix is positive definite
+#'
+#' @param x a \code{matrix} object
+#' @param tol a value indicating the smallest integer considered positive
+#' @return TRUE if the matrix is positive definite, and FALSE otherwise
+#' @keywords internal
 isPositiveDefinite = function(x, tol=1e-18) {
   if (!is.matrix(x) || !isSquare(x)) {
     stop("argument must be a square matrix")
@@ -55,9 +64,22 @@ isPositiveDefinite = function(x, tol=1e-18) {
   return(TRUE)
 }
 
-#
-# Class representing the Wishart distribution
-#
+#'
+#' wishart
+#'
+#' Class representing the Wishart distribution 
+#'
+#' @slot df The degrees of freedom for the Wishart distribution.  Must be a positive integer.
+#' @slot covariance The covariance of the Wishart distribution.  Must be a square, positive
+#' definite matrix.    
+#'
+#' @name wishart 
+#' @rdname wishart
+#' @note For theoretical details, please see
+#' 
+#'Gupta, A. K., & Nagar, D. K. (2000). Matrix variate distributions. 
+#'Boca Raton, FL: Chapman & Hall.
+#' 
 setClass("wishart",
          representation ( df = "numeric",
                           covariance = "matrix"
@@ -76,9 +98,22 @@ setClass("wishart",
          }
          )
 
-#
-# Class representing the inverse Wishart distribution
-#
+#'
+#' wishart
+#'
+#' Class representing the inverse Wishart distribution 
+#'
+#' @slot df The degrees of freedom for the Wishart distribution.  Must be a positive integer.
+#' @slot precision The precision matrix of the inverse Wishart distribution.  Must be a square, positive
+#' definite matrix.    
+#'
+#' @name inverseWishart 
+#' @rdname inverseWishart
+#' @note For theoretical details, please see
+#' 
+#'Gupta, A. K., & Nagar, D. K. (2000). Matrix variate distributions. 
+#'Boca Raton, FL: Chapman & Hall.
+#' 
 setClass("inverseWishart",
          representation ( df = "numeric",
                           precision = "matrix"
@@ -97,17 +132,35 @@ setClass("inverseWishart",
          }
 )
 
-# generic for inverting a Wishart or inverse Wishart distribution
+#' invert
+#' 
+#' Form the distribution of the inverse of the specified Wishart or inverse Wishart.
+#'
+#' @param a \code{\link{wishart}} or \code{\link{inverseWishart}} distribution object
+#'
+#' @return the distribution object for the inverse of the specified Wishart or inverse Wishart
+#' 
+#' @seealso \code{\link{wishart}} and \code{\link{inverseWishart}}
+#' 
+#' @export
+#' @docType methods
+#' @rdname invert-methods
+#' @name invert
+#' @note
+#' Based on Theorem 3.4.1, p 111 from 
+#' 
+#' Gupta, A. K., & Nagar, D. K. (2000). Matrix variate distributions. 
+#' Boca Raton, FL: Chapman & Hall.
+#' 
 setGeneric(
   "invert",
   function(object) {
     standardGeneric("invert")
   }
 )
-# 
-# For a given Wishart, create the corresponding inverse Wishart
-# Based on Theorem 3.4.1, p 111 from Gupta & Nagar (2000)
-#
+
+#' @rdname invert-methods
+#' @aliases invert,wishart,wishart-method
 setMethod("invert", 
           signature("wishart"),
           function(object) {
@@ -116,10 +169,9 @@ setMethod("invert",
             df = object@df + dimension + 1
             return(new("inverseWishart", df=df, precision=precision))
           })
-# 
-# For a given Wishart, create the corresponding inverse Wishart
-# Based on Theorem 3.4.1, p 111 from Gupta & Nagar (2000)
-#
+
+#' @rdname invert-methods
+#' @aliases invert,inverseWishart,inverseWishart-method
 setMethod("invert", 
           signature("inverseWishart"),
           function(object) {
@@ -129,9 +181,12 @@ setMethod("invert",
             return(new("wishart", df=df, covariance=covariance))
           })
 
-#
-# Concatenation function for Wisharts
-#
+#' Combine Values into a vector or list
+#' 
+#' Concatenate Wishart objects
+#'
+#' @rdname c-methods
+#' @aliases c,wishart,wishart-method
 setMethod("c", signature(x = "wishart"), function(x, ...){
   elements = list(x, ...)
   
@@ -144,9 +199,11 @@ setMethod("c", signature(x = "wishart"), function(x, ...){
   
   wishartList 
 })
-#
-# Concatenation function for inverse Wisharts
-#
+
+#' Concatenate inverse Wishart objects
+#'
+#' @rdname c-methods
+#' @aliases c,inverseWishart,inverseWishart-method
 setMethod("c", signature(x = "inverseWishart"), function(x, ...){
   elements = list(x, ...)
   

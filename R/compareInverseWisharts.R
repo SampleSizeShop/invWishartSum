@@ -28,7 +28,6 @@
 # sum of inverse Wishart matrices
 #
 #
-library(MASS)
 
 #' simulate.sumInvWishartsScaled
 #'

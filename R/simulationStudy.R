@@ -308,28 +308,28 @@ runSimulationStudy <- function(study.seed=1812, study.data.dir=".", study.figure
   #
   case1.approxFiles = generateApproximationData(case1.invChiSqList, NULL, dfScaleList=dfScaleList, 
                                                 replicates=replicates, filenamePrefix="case1ApproxReplicates", 
-                                                outputDir=demo.data.dir)
+                                                outputDir=study.data.dir)
   case1.sumFiles = generateEmpiricalSumData(case1.invChiSqList, NULL, dfScaleList=dfScaleList, 
                                             replicates=replicates, filenamePrefix="case1SumReplicates", 
-                                            outputDir=demo.data.dir)
+                                            outputDir=study.data.dir)
   # 
   # Generate empirical and approximate data for test case 2 (sum of Wisharts)
   #
   case2.approxFiles = generateApproximationData(case2.invWishartList, NULL, dfScaleList=dfScaleList, 
                                                 replicates=replicates, filenamePrefix="case2ApproxReplicates", 
-                                                outputDir=demo.data.dir)
+                                                outputDir=study.data.dir)
   case2.sumFiles = generateEmpiricalSumData(case2.invWishartList, NULL, dfScaleList=dfScaleList, 
                                             replicates=replicates, filenamePrefix="case2SumReplicates", 
-                                            outputDir=demo.data.dir)
+                                            outputDir=study.data.dir)
   # 
   # Generate empirical and approximate data for test case 3 (sum of quadratic forms of Wisharts)
   #
   case3.approxFiles = generateApproximationData(case3.invWishartList, case3.scaleMatrixList, 
                                                 dfScaleList=dfScaleList, replicates=replicates, 
-                                                filenamePrefix="case3ApproxReplicates", outputDir=demo.data.dir)
+                                                filenamePrefix="case3ApproxReplicates", outputDir=study.data.dir)
   case3.sumFiles = generateEmpiricalSumData(case3.invWishartList, case3.scaleMatrixList, 
                                             dfScaleList=dfScaleList, replicates=replicates,
-                                            filenamePrefix="case3SumReplicates", outputDir=demo.data.dir)
+                                            filenamePrefix="case3SumReplicates", outputDir=study.data.dir)
   
   
   ##### Calculate the energy distance for each test case and scale factor #####
@@ -347,11 +347,11 @@ runSimulationStudy <- function(study.seed=1812, study.data.dir=".", study.figure
                      invWishartEdist=case2.edist,
                      singularInvWishartEdist=case3.edist)
   # write the energy distance table to disk
-  write.csv(edist, paste(c(demo.data.dir, "energyDistance.csv"), collapse="/"), row.names=FALSE)
+  write.csv(edist, paste(c(study.data.dir, "energyDistance.csv"), collapse="/"), row.names=FALSE)
   
   # plot the energy distance by df scale factor
-  edist = read.csv(paste(c(demo.data.dir, "energyDistance.csv"), collapse="/"))
-  pdf(file=paste(c(demo.figures.dir, "energyDistanceByScaleFactor.pdf"), collapse="/"), family="Times")
+  edist = read.csv(paste(c(study.data.dir, "energyDistance.csv"), collapse="/"))
+  pdf(file=paste(c(study.figures.dir, "energyDistanceByScaleFactor.pdf"), collapse="/"), family="Times")
   plot(edist$dfScale, edist$chiSQEdist, "l", cex.lab=1.5, ylim=c(0,10),
        xlab=expression(nu), ylab="Energy Distance", las=1)
   points(edist$dfScale, edist$chiSQEdist, pch=0)
@@ -370,23 +370,23 @@ runSimulationStudy <- function(study.seed=1812, study.data.dir=".", study.figure
   idx=which(grepl("dfScale4.Rdata", case1.sumFiles))
   plotDensityFromFile(case1.sumFiles[idx], case1.approxFiles[idx], 
                       ylim=c(0,40), xlim=c(0,0.25), 
-                      filename=paste(c(demo.figures.dir, "invChiSqDensity.pdf"), collapse="/"))
+                      filename=paste(c(study.figures.dir, "invChiSqDensity.pdf"), collapse="/"))
   plotDensityFromFile(case2.sumFiles[idx], case2.approxFiles[idx], 
                       ylim=c(0,80), xlim=c(-0.1,0.15), 
-                      filename=paste(c(demo.figures.dir, "invWishartDensity.pdf"), collapse="/"))
+                      filename=paste(c(study.figures.dir, "invWishartDensity.pdf"), collapse="/"))
   plotDensityFromFile(case3.sumFiles[idx], case3.approxFiles[idx], 
                       ylim=c(0,100), xlim=c(-0.1,0.15), 
-                      filename=paste(c(demo.figures.dir, "quadraticFormDensity.pdf"), collapse="/"))
+                      filename=paste(c(study.figures.dir, "quadraticFormDensity.pdf"), collapse="/"))
   
   ##### Plot selected covariances for the p > 1 cases #####
   idx=which(grepl("dfScale4.Rdata", case2.sumFiles))
   plotCovarianceFromFile(case2.sumFiles[idx], case2.approxFiles[idx], cell1=c(1,1),
                          cell2=c(1,2), height=4, width=6,
                          lims=c(-0.04,0,-0.025,0.01), 
-                         filename=paste(c(demo.figures.dir, "invWishartCovar.pdf"), collapse="/"))
+                         filename=paste(c(study.figures.dir, "invWishartCovar.pdf"), collapse="/"))
   plotCovarianceFromFile(case3.sumFiles[idx], case3.approxFiles[idx], cell1=c(1,1),
                          cell2=c(1,2), height=4, width=6,
                          lims=c(-0.03,0.03,-0.06,0), 
-                         filename=paste(c(demo.figures.dir, "quadraticFormCovar.pdf"), collapse="/"))
+                         filename=paste(c(study.figures.dir, "quadraticFormCovar.pdf"), collapse="/"))
 }
 

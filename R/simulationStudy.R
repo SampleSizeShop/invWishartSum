@@ -300,7 +300,7 @@ runSimulationStudy <- function(study.seed=1812, study.data.dir=".", study.figure
   )
   
   ##### Generate samples for each test case and each scale factor #####
-  set.seed(demo.seed)
+  set.seed(study.seed)
   dfScaleList = 2^(0:5)
   replicates=1000
   # 

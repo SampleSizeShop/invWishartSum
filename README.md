@@ -9,13 +9,27 @@ The package provides companion code for the manuscript:
 Kreidler, S. M., Muller, K. E., & Glueck, D. H. An Approximation to 
 the Distribution of the Sum of Inverse Wishart Matrices, In review.
 
-To replicate the results in the manuscript
-1. Download the zip file from https://github.com/samplesizeshop/invWishartSum
-2. Install the package into your local R installation (http://cran.r-project.org/doc/manuals/R-admin.html#Add_002don-packages)
-3. load the library: 
-  
-  > library(invWishartSum)
+### Instructions for replicating the manuscript results 
 
-4. Run the simulation study (takes about 1 hour to run)
+The results in the above manuscript were produced using R version 3.0.0. To reproduce the results,
+perform the following steps:
 
-  > runSimulationStudy(study.data.dir="myDataDir", study.figures.dir="myFiguresDir")
+* Install R version 3.0.x or higher by following the instructions at http://www.r-project.org
+* From the R environment, install and load the "devtools" package
+```R
+> install.packages("devtools")
+> library(devtools)
+```
+* Install the "invWishartSum" package directly from Github.com
+```R
+> install_github(repo="invWishartSum", user="SampleSizeShop", ref="develop")
+```
+* Load the library
+```R
+> library(invWishartSum)
+```
+* Run the simulation study to produce the manuscript results (takes about 1 hour to run). You may specify output directories for data files (study.data.dir) and figures (study.figures.dir). If omitted, both default to the current working directories.
+```R
+> runSimulationStudy(study.data.dir="myDataDir", study.figures.dir="myFiguresDir")
+```
+

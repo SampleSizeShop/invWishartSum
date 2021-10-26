@@ -192,7 +192,7 @@ setMethod("c", signature(x = "wishart"), function(x, ...){
   
   wishartList = list()
   for (i in 1:length(elements)){
-    wishartList[i] = new("wishart", df = elements[[i]]@df, covariance = elements[[i]]@covariance)  
+    wishartList[[i]] = new("wishart", df = elements[[i]]@df, covariance = elements[[i]]@covariance)  
   }
   
   class(wishartList) = "wishart"
@@ -209,7 +209,7 @@ setMethod("c", signature(x = "inverseWishart"), function(x, ...){
   
   invWishartList = list()
   for (i in 1:length(elements)){
-    invWishartList[i] = new("inverseWishart", 
+    invWishartList[[i]] = new("inverseWishart", 
                             df = elements[[i]]@df, precision = elements[[i]]@precision)  
   }
   

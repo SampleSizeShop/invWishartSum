@@ -194,7 +194,8 @@ getEnergyDistanceForFilelist <- function(sumFileList, approxFileList) {
 #' @return plot of univariate densities as a pdf
 #'
 plotDensityFromFile <- function(sumFile, approxFile, filename,
-                                ylim=c(0,1), xlim=c(0,1), col=c("blue", "black")) {
+                                ylim=c(0,1), xlim=c(0,1), col=c("blue", "black"),
+                                format="tiff", width=7, height=7) {
   print(paste(c("Plotting univariate densities for files [", sumFile, 
                 "] and [", approxFile, "]"), collapse=""))
   
@@ -203,9 +204,16 @@ plotDensityFromFile <- function(sumFile, approxFile, filename,
   # load the approx sample from the Rdata file - sets a variable called approxReplicates
   load(approxFile)
   # plot the densities
-  pdf(filename)
-  compare.plot(sumReplicates, approxReplicates, ylim=ylim, xlim=xlim, col=col)
-  dev.off()
+  if (format == "tiff") {
+    tiff(filename, units="in", 
+         width=width, height=height, res=300, compression = 'lzw')
+    compare.plot(sumReplicates, approxReplicates, ylim=ylim, xlim=xlim, col=col)
+    dev.off()
+  } else {
+    pdf(filename)
+    compare.plot(sumReplicates, approxReplicates, ylim=ylim, xlim=xlim, col=col)
+    dev.off()
+  }
 }
 
 #' plotCovarianceFromFile
@@ -229,7 +237,8 @@ plotDensityFromFile <- function(sumFile, approxFile, filename,
 plotCovarianceFromFile <- function(sumFile, approxFile, cell1=c(1,1), cell2=c(1,2),
                                    height=4, width=4,
                                    filename, lims=c(-2,2,-2,2),
-                                   col=c("blue", "black")) {
+                                   col=c("blue", "black"),
+                                   format="tiff") {
   print(paste(c("Plotting bivariate densities for files [", sumFile, 
                 "] and [", approxFile, "]"), collapse=""))
   
@@ -237,11 +246,18 @@ plotCovarianceFromFile <- function(sumFile, approxFile, cell1=c(1,1), cell2=c(1,
   load(sumFile)
   # load the approx sample from the Rdata file - sets a variable called approxReplicates
   load(approxFile)
-  # plot the densities
-  pdf(filename, height=height, width=width)
-  compare.covarPlot(sumReplicates, approxReplicates, lims=lims, col=col, style="contour")
   
-  dev.off()
+  # plot the densities
+  if (format == "tiff") {
+    tiff(filename, units="in", 
+         width=width, height=height, res=300, compression = 'lzw')
+    compare.covarPlot(sumReplicates, approxReplicates, lims=lims, col=col, style="contour")
+    dev.off()
+  } else {
+    pdf(filename, height=height, width=width)
+    compare.covarPlot(sumReplicates, approxReplicates, lims=lims, col=col, style="contour")
+    dev.off()
+  }
 }
 
 
@@ -350,8 +366,8 @@ runSimulationStudy <- function(study.seed=1812, study.data.dir=".", study.figure
   write.csv(edist, paste(c(study.data.dir, "energyDistance.csv"), collapse="/"), row.names=FALSE)
   
   # plot the energy distance by df scale factor
-  edist = read.csv(paste(c(study.data.dir, "energyDistance.csv"), collapse="/"))
-  pdf(file=paste(c(study.figures.dir, "energyDistanceByScaleFactor.pdf"), collapse="/"), family="Times")
+  tiff(file.path(study.figures.dir, "energyDistanceByScaleFactor.tiff"), units="in", 
+       width=7, height=7, res=300, compression = 'lzw')
   plot(edist$dfScale, edist$chiSQEdist, "l", cex.lab=1.5, ylim=c(0,10),
        xlab=expression(nu), ylab="Energy Distance", las=1)
   points(edist$dfScale, edist$chiSQEdist, pch=0)
@@ -370,23 +386,23 @@ runSimulationStudy <- function(study.seed=1812, study.data.dir=".", study.figure
   idx=which(grepl("dfScale4.Rdata", case1.sumFiles))
   plotDensityFromFile(case1.sumFiles[idx], case1.approxFiles[idx], 
                       ylim=c(0,40), xlim=c(0,0.25), 
-                      filename=paste(c(study.figures.dir, "invChiSqDensity.pdf"), collapse="/"))
+                      filename=paste(c(study.figures.dir, "invChiSqDensity.tiff"), collapse="/"))
   plotDensityFromFile(case2.sumFiles[idx], case2.approxFiles[idx], 
                       ylim=c(0,80), xlim=c(-0.1,0.15), 
-                      filename=paste(c(study.figures.dir, "invWishartDensity.pdf"), collapse="/"))
+                      filename=paste(c(study.figures.dir, "invWishartDensity.tiff"), collapse="/"))
   plotDensityFromFile(case3.sumFiles[idx], case3.approxFiles[idx], 
                       ylim=c(0,100), xlim=c(-0.1,0.15), 
-                      filename=paste(c(study.figures.dir, "quadraticFormDensity.pdf"), collapse="/"))
+                      filename=paste(c(study.figures.dir, "quadraticFormDensity.tiff"), collapse="/"))
   
   ##### Plot selected covariances for the p > 1 cases #####
   idx=which(grepl("dfScale4.Rdata", case2.sumFiles))
   plotCovarianceFromFile(case2.sumFiles[idx], case2.approxFiles[idx], cell1=c(1,1),
                          cell2=c(1,2), height=4, width=6,
                          lims=c(-0.04,0,-0.025,0.01), 
-                         filename=paste(c(study.figures.dir, "invWishartCovar.pdf"), collapse="/"))
+                         filename=paste(c(study.figures.dir, "invWishartCovar.tiff"), collapse="/"))
   plotCovarianceFromFile(case3.sumFiles[idx], case3.approxFiles[idx], cell1=c(1,1),
                          cell2=c(1,2), height=4, width=6,
                          lims=c(-0.03,0.03,-0.06,0), 
-                         filename=paste(c(study.figures.dir, "quadraticFormCovar.pdf"), collapse="/"))
+                         filename=paste(c(study.figures.dir, "quadraticFormCovar.tiff"), collapse="/"))
 }
 

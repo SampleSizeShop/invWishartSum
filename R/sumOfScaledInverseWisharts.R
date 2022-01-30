@@ -160,7 +160,7 @@ traceVariance = function(invWishart) {
   
   # get the sum of the variances
   varianceSum = sum(sapply(indices, function(i, dim) {
-    return (2 * invWishart@precision[i,i] / 
+    return (2 * (invWishart@precision[i,i])^2 / 
               ((invWishart@df - dim - 1)^2*(invWishart@df - dim - 3)))
   }, dim=dim))
   
@@ -177,7 +177,7 @@ traceVariance = function(invWishart) {
   }, dim=dim))
   
   # return the variance of the trace
-  return(varianceSum + 4 * covarianceSum)
+  return(varianceSum + covarianceSum)
   
 }
 
